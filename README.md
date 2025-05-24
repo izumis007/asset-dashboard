@@ -1,6 +1,7 @@
 # Self-Hosted Asset Dashboard
 
 プライバシーを重視したセルフホスト型の資産管理ダッシュボード。Money Forwardの代替として、ビットコインを含む家計資産を統合管理します。
+!本リポジトリは学習／個人利用目的。Money Forward 連携は自己責任で。!
 
 ## 主な機能
 
