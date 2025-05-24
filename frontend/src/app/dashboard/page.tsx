@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NetWorthChart } from '@/components/charts/NetWorthChart'
 import { AllocationPieChart } from '@/components/charts/AllocationPieChart'
 import { formatCurrency, formatPercentage } from '@/lib/utils'
-import { ArrowUpIcon, ArrowDownIcon, RefreshCwIcon } from '@heroicons/react/24/outline'
+import { ArrowUpIcon, ArrowDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           variant="outline"
           size="sm"
         >
-          <RefreshCwIcon className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <ArrowPathIcon className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh Prices
         </Button>
       </div>
