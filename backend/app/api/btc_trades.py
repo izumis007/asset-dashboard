@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, case
 from typing import List
 from datetime import datetime
 import io
+import pandas as pd
 
 from app.database import get_db
 from app.models import BTCTrade, User

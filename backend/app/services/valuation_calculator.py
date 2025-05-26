@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from app.models import Asset, Holding, Price, ValuationSnapshot, CashBalance, BTCTrade
 from app.services.price_fetcher import PriceFetcher
 import logging
