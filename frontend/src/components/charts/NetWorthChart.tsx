@@ -60,6 +60,12 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
           tickFormatter={formatYAxis}
           className="text-xs"
         />
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          tickFormatter={formatYAxis}
+          className="text-xs"
+        />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
         <Line
