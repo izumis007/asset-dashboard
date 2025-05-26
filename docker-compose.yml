@@ -71,7 +71,7 @@ services:
     networks:
       - asset_network
     restart: unless-stopped
-    command: celery -A app.tasks.scheduled_tasks worker --loglevel=info
+    command: celery -A app.tasks.scheduled_tasks:celery_app worker --loglevel=info
 
   celery_beat:
     build:
@@ -91,16 +91,17 @@ services:
     networks:
       - asset_network
     restart: unless-stopped
-    command: celery -A app.tasks.scheduled_tasks beat --loglevel=info
+    command: celery -A app.tasks.scheduled_tasks:celery_app beat --loglevel=info
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: asset_dashboard_frontend
     environment:
       NEXT_PUBLIC_API_URL: http://backend:8000
       TZ: Asia/Tokyo
+      NEXT_TELEMETRY_DISABLED: 1  # テレメトリを無効化
     volumes:
       - ./frontend:/app
       - /app/node_modules
