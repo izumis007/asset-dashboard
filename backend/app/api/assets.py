@@ -19,11 +19,13 @@ class AssetCreate(BaseModel):
     currency: str = "JPY"
     exchange: str | None = None
     isin: str | None = None
+    sub_category: str | None = None 
 
 class AssetUpdate(BaseModel):
     name: str | None = None
     exchange: str | None = None
     isin: str | None = None
+    sub_category: str | None = None 
 
 class AssetResponse(BaseModel):
     id: int
@@ -33,6 +35,7 @@ class AssetResponse(BaseModel):
     currency: str
     exchange: str | None
     isin: str | None
+    sub_category: str | None = None 
     
     class Config:
         from_attributes = True

@@ -24,6 +24,7 @@ class Asset(Base):
     # Optional fields
     exchange = Column(String(50), nullable=True)
     isin = Column(String(12), nullable=True)
+    sub_category = Column(String, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

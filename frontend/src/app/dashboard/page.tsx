@@ -9,13 +9,16 @@ import { formatCurrency, formatPercentage } from '@/lib/utils'
 import { ArrowUpIcon, ArrowDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
+import { useAuthStore } from "@/lib/api"
 
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   
+  const token = useAuthStore(state => state.token)
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: dashboardAPI.overview,
+    enabled: !!token  // 
   })
 
   const handleRefreshPrices = async () => {

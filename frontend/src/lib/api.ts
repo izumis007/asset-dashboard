@@ -1,10 +1,17 @@
 import axios from 'axios'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { AssetCreate, AssetUpdate } from "@/types"
+import type {
+  Asset,
+  Holding,
+  BTCTrade,
+  DashboardData,
+  User
+} from "@/types"
 
-const API_URL = typeof window !== 'undefined' ? '/api' : 'http://backend:8000/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api'
 
-// Create axios instance
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -56,75 +63,6 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
-// Types
-export interface User {
-  id: string
-  username: string
-  email: string
-  totp_enabled: boolean
-}
-
-export interface Asset {
-  id: number
-  symbol: string
-  name: string
-  category: 'equity' | 'etf' | 'fund' | 'bond' | 'crypto' | 'cash'
-  currency: string
-  exchange?: string
-}
-
-export interface Holding {
-  id: number
-  asset: Asset
-  quantity: number
-  cost_total: number
-  acquisition_date: string
-  account_type: 'NISA' | 'iDeCo' | 'taxable'
-  broker?: string
-  notes?: string
-}
-
-export interface Price {
-  id: number
-  asset_id: number
-  date: string
-  price: number
-  open?: number
-  high?: number
-  low?: number
-  volume?: number
-  source?: string
-}
-
-export interface BTCTrade {
-  id: number
-  txid?: string
-  amount_btc: number
-  counter_value_jpy: number
-  jpy_rate: number
-  fee_btc?: number
-  fee_jpy?: number
-  timestamp: string
-  exchange?: string
-  notes?: string
-}
-
-export interface DashboardData {
-  total_jpy: number
-  total_usd: number
-  total_btc: number
-  change_24h: number
-  change_percentage: number
-  breakdown_by_category: Record<string, number>
-  breakdown_by_currency: Record<string, number>
-  breakdown_by_account_type: Record<string, number>
-  history: Array<{
-    date: string
-    total_jpy: number
-    total_usd: number
-  }>
-}
 
 // API functions
 export const authAPI = {
@@ -227,21 +165,40 @@ export const btcTradesAPI = {
   }
 }
 
+overview: async () => {
+  const response = await api.get<DashboardData>('/dashboard/overview')  // /api を削除
+  return response.data
+}
+
+history: async (days: number = 365) => {
+  const response = await api.get('/dashboard/history', {  // /api を削除
+  params: { days }
+  })
+  return response.data
+}
+
+refreshPrices: async () => {
+  const response = await api.post('/dashboard/refresh-prices')  // /api を削除
+  return response.data
+}
+
+console.log("BASE API URL:", API_URL)
+
 export const dashboardAPI = {
   overview: async () => {
-    const response = await api.get<DashboardData>('/dashboard/overview')  // /api を削除
+    const response = await api.get('/dashboard/overview')
     return response.data
   },
-  
+
   history: async (days: number = 365) => {
-    const response = await api.get('/dashboard/history', {  // /api を削除
+    const response = await api.get('/dashboard/history', {
       params: { days }
     })
     return response.data
   },
-  
+
   refreshPrices: async () => {
-    const response = await api.post('/dashboard/refresh-prices')  // /api を削除
+    const response = await api.post('/dashboard/refresh-prices')
     return response.data
   }
 }
