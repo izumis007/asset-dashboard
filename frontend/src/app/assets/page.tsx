@@ -1,78 +1,74 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { assetsAPI } from "@/lib/api"
-import type { Asset, AssetCreate } from "@/types"
+import { useEffect, useState } from 'react'
+import { assetsAPI } from '@/lib/api'
+import { Asset, AssetCreate } from '@/types'
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
-  const [form, setForm] = useState<AssetCreate>({
-    symbol: "",
-    name: "",
-    category: "equity",
-    currency: "JPY",
-    exchange: "",
-    isin: "",
-  })
-  const [error, setError] = useState<string | null>(null)
+  const [symbol, setSymbol] = useState('')
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState<'equity' | 'etf' | 'fund' | 'bond' | 'crypto' | 'cash'>('equity')
+  const [subCategory, setSubCategory] = useState('')
+  const [currency, setCurrency] = useState('JPY')
+  const [exchange, setExchange] = useState('')
+  const [isin, setIsin] = useState('')
 
   useEffect(() => {
-    assetsAPI.list().then(setAssets).catch(() => {
-      setError("資産一覧の取得に失敗しました")
-    })
+    const fetchAssets = async () => {
+      const res = await assetsAPI.list()
+      setAssets(res)
+    }
+    fetchAssets()
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      await assetsAPI.create(form)
-      const updated = await assetsAPI.list()
-      setAssets(updated)
-      setForm({
-        symbol: "",
-        name: "",
-        category: "equity",
-        currency: "JPY",
-        exchange: "",
-        isin: "",
-      })
-      setError(null)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "登録に失敗しました")
+  const handleSubmit = async () => {
+    const newAsset: AssetCreate = {
+      symbol,
+      name,
+      category,
+      sub_category: subCategory,
+      currency,
+      exchange,
+      isin,
     }
+    await assetsAPI.create(newAsset)
+    const res = await assetsAPI.list()
+    setAssets(res)
+
+    // Reset form
+    setSymbol('')
+    setName('')
+    setCategory('equity')
+    setSubCategory('')
+    setCurrency('JPY')
+    setExchange('')
+    setIsin('')
   }
 
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold mb-4">資産の登録</h1>
-
-      <form onSubmit={handleSubmit} className="mb-6 space-y-2 border p-4 rounded">
+      <div className="space-y-2 mb-6">
         <input
           type="text"
-          name="symbol"
-          value={form.symbol}
-          onChange={handleChange}
-          placeholder="ティッカー (例: BTC, TSLA)"
-          required
-          className="w-full p-1 border"
+          value={symbol}
+          onChange={(e) => setSymbol(e.target.value)}
+          className="w-full p-2 rounded text-black"
+          placeholder="ティッカー（例: BTC, TSLA）"
         />
         <input
           type="text"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="名称 (例: ビットコイン, テスラ)"
-          required
-          className="w-full p-1 border"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full p-2 rounded text-black"
+          placeholder="名称（例: ビットコイン, テスラ）"
         />
-        <select name="category" value={form.category} onChange={handleChange} required className="w-full p-1 border">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as AssetCreate['category'])}
+          className="w-full p-2 rounded text-black"
+        >
           <option value="equity">株式</option>
           <option value="etf">ETF</option>
           <option value="fund">投資信託</option>
@@ -80,50 +76,64 @@ export default function AssetsPage() {
           <option value="crypto">暗号資産</option>
           <option value="cash">現金</option>
         </select>
-        <select name="currency" value={form.currency} onChange={handleChange} required className="w-full p-1 border">
+        <input
+          type="text"
+          value={subCategory}
+          onChange={(e) => setSubCategory(e.target.value)}
+          className="w-full p-2 rounded text-black"
+          placeholder="サブカテゴリ（例: S&P500、米国債、タンス預金）"
+        />
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="w-full p-2 rounded text-black"
+        >
           <option value="JPY">JPY</option>
           <option value="USD">USD</option>
           <option value="BTC">BTC</option>
+          <option value="ETH">ETH</option>
         </select>
         <input
           type="text"
-          name="exchange"
-          value={form.exchange}
-          onChange={handleChange}
-          placeholder="取引所 (任意)"
-          className="w-full p-1 border"
+          value={exchange}
+          onChange={(e) => setExchange(e.target.value)}
+          className="w-full p-2 rounded text-black"
+          placeholder="取引所（任意）"
         />
         <input
           type="text"
-          name="isin"
-          value={form.isin}
-          onChange={handleChange}
-          placeholder="ISINコード (任意)"
-          className="w-full p-1 border"
+          value={isin}
+          onChange={(e) => setIsin(e.target.value)}
+          className="w-full p-2 rounded text-black"
+          placeholder="ISINコード（任意）"
         />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded">登録</button>
-        {error && <p className="text-red-600 mt-2">{error}</p>}
-      </form>
+        <button
+          onClick={handleSubmit}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          登録
+        </button>
+      </div>
 
       <h2 className="text-lg font-semibold mb-2">登録済みの資産</h2>
-      <table className="w-full border">
+      <table className="w-full text-left table-auto">
         <thead>
-          <tr>
-            <th className="border px-2 py-1">ティッカー</th>
-            <th className="border px-2 py-1">名称</th>
-            <th className="border px-2 py-1">カテゴリ</th>
-            <th className="border px-2 py-1">サブカテゴリ</th> 
-            <th className="border px-2 py-1">通貨</th>
+          <tr className="border-b">
+            <th className="px-2 py-1">ティッカー</th>
+            <th className="px-2 py-1">名称</th>
+            <th className="px-2 py-1">カテゴリ</th>
+            <th className="px-2 py-1">サブカテゴリ</th>
+            <th className="px-2 py-1">通貨</th>
           </tr>
         </thead>
         <tbody>
           {assets.map((asset) => (
-            <tr key={asset.id}>
-              <td className="border px-2 py-1">{asset.symbol}</td>
-              <td className="border px-2 py-1">{asset.name}</td>
-              <td className="border px-2 py-1">{asset.category}</td>
-              <td className="border px-2 py-1">{asset.sub_category || "-"}</td>
-              <td className="border px-2 py-1">{asset.currency}</td>
+            <tr key={asset.id} className="border-b">
+              <td className="px-2 py-1">{asset.symbol}</td>
+              <td className="px-2 py-1">{asset.name}</td>
+              <td className="px-2 py-1">{asset.category}</td>
+              <td className="px-2 py-1">{asset.sub_category || '-'}</td>
+              <td className="px-2 py-1">{asset.currency}</td>
             </tr>
           ))}
         </tbody>

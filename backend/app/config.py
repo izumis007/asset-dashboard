@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:3000",    # ホスト開発用（npm run dev）
+        "http://frontend:3000",     # Docker内のNext.js
+        "http://127.0.0.1:3000",    # localhostの別表現（念のため）
+    ]
     
     # API Keys
     TWELVE_DATA_API_KEY: str = ""

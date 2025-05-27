@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models import Asset, User
 from app.api.auth import get_current_user
 from pydantic import BaseModel
-from app.models.asset import AssetCategory
+from sqlalchemy import and_
 
 router = APIRouter()
 
@@ -77,11 +77,13 @@ async def create_asset(
     """Create a new asset"""
     # Check if asset already exists
     result = await db.execute(
-        select(Asset).where(
+    select(Asset).where(
+        and_(
             Asset.symbol == asset_data.symbol,
             Asset.category == asset_data.category
         )
     )
+)
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=400,
