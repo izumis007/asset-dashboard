@@ -1,284 +1,302 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { assetsAPI } from '@/lib/api'
-import { Asset, AssetCreate, AssetClass, AssetType, Region } from '@/types'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Search, Plus } from 'lucide-react'
+
+// 型定義（実際のファイルからインポート）
+type AssetClass = 'CashEquivalents' | 'FixedIncome' | 'Equity' | 'RealEstate' | 'Commodity' | 'Crypto'
+type AssetType = 'Savings' | 'MMF' | 'Stablecoin' | 'GovernmentBond' | 'CorporateBond' | 'BondETF' | 'BondMutualFund' | 'DirectStock' | 'EquityETF' | 'MutualFund' | 'ADR' | 'REIT' | 'GoldETF' | 'CommodityETF' | 'PhysicalGold' | 'Crypto' | 'CryptoETF'
+
+const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  CashEquivalents: '現金等価物',
+  FixedIncome: '債券・固定収益',
+  Equity: '株式',
+  RealEstate: '不動産',
+  Commodity: 'コモディティ',
+  Crypto: '暗号資産'
+}
+
+const ASSET_TYPE_OPTIONS: Record<AssetClass, { value: AssetType; label: string }[]> = {
+  CashEquivalents: [
+    { value: 'Savings', label: '普通預金' },
+    { value: 'MMF', label: 'MMF' },
+    { value: 'Stablecoin', label: 'ステーブルコイン' }
+  ],
+  FixedIncome: [
+    { value: 'GovernmentBond', label: '国債' },
+    { value: 'CorporateBond', label: '社債' },
+    { value: 'BondETF', label: '債券ETF' },
+    { value: 'BondMutualFund', label: '債券投信' }
+  ],
+  Equity: [
+    { value: 'DirectStock', label: '個別株' },
+    { value: 'EquityETF', label: '株式ETF' },
+    { value: 'MutualFund', label: '株式投信' },
+    { value: 'ADR', label: 'ADR' }
+  ],
+  RealEstate: [{ value: 'REIT', label: 'REIT' }],
+  Commodity: [
+    { value: 'GoldETF', label: '金ETF' },
+    { value: 'CommodityETF', label: 'コモディティETF' },
+    { value: 'PhysicalGold', label: '現物金' }
+  ],
+  Crypto: [
+    { value: 'Crypto', label: '暗号資産' },
+    { value: 'CryptoETF', label: '暗号資産ETF' }
+  ]
+}
+
+const DEFAULT_CURRENCY_BY_CLASS: Record<AssetClass, string> = {
+  CashEquivalents: 'JPY',
+  FixedIncome: 'JPY',
+  Equity: 'USD',
+  RealEstate: 'JPY',
+  Commodity: 'USD',
+  Crypto: 'BTC'
+}
+
+const REGION_OPTIONS = [
+  { value: 'JP', label: '日本' },
+  { value: 'US', label: '米国' },
+  { value: 'EU', label: '欧州' },
+  { value: 'EM', label: '新興国' },
+  { value: 'GL', label: '全世界' }
+]
+
+interface Asset {
+  id: number
+  symbol: string
+  name: string
+  asset_class: string
+  asset_type: string
+  region?: string
+  sub_category?: string
+  currency: string
+  exchange?: string
+}
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
-  const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
-  const [isFormVisible, setIsFormVisible] = useState(false)
-
-  // フォームの状態
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  // フォーム状態
   const [symbol, setSymbol] = useState('')
   const [name, setName] = useState('')
   const [assetClass, setAssetClass] = useState<AssetClass>('Equity')
-  const [assetType, setAssetType] = useState<AssetType | undefined>(undefined)
-  const [region, setRegion] = useState<Region | undefined>(undefined)
-  const [subCategory, setSubCategory] = useState<string | undefined>(undefined)
-  const [currency, setCurrency] = useState('JPY')
+  const [assetType, setAssetType] = useState<AssetType | ''>('')
+  const [currency, setCurrency] = useState('USD')
+  const [region, setRegion] = useState('')
+  const [subCategory, setSubCategory] = useState('')
   const [exchange, setExchange] = useState('')
   const [isin, setIsin] = useState('')
 
-  useEffect(() => {
-    fetchAssets()
-  }, [])
-
-  const fetchAssets = async () => {
-    try {
-      const res = await assetsAPI.list()
-      setAssets(res)
-    } catch (error) {
-      console.error('Failed to fetch assets:', error)
-    }
+  // 資産クラス変更時の処理
+  const handleAssetClassChange = (newClass: AssetClass) => {
+    setAssetClass(newClass)
+    setAssetType('') // リセット
+    setCurrency(DEFAULT_CURRENCY_BY_CLASS[newClass]) // デフォルト通貨設定
   }
 
-  const resetForm = () => {
+  // モックデータ
+  useEffect(() => {
+    setAssets([
+      { id: 1, symbol: 'AAPL', name: 'Apple Inc.', asset_class: 'Equity', asset_type: 'DirectStock', region: 'US', sub_category: '大型テック', currency: 'USD', exchange: 'NASDAQ' },
+      { id: 2, symbol: 'VOO', name: 'Vanguard S&P 500 ETF', asset_class: 'Equity', asset_type: 'EquityETF', region: 'US', sub_category: 'インデックス', currency: 'USD', exchange: 'NYSE' },
+      { id: 3, symbol: 'BTC', name: 'Bitcoin', asset_class: 'Crypto', asset_type: 'Crypto', sub_category: 'メジャー暗号資産', currency: 'BTC' }
+    ])
+  }, [])
+
+  const handleSubmit = () => {
+    // 実際のAPI呼び出し処理
+    console.log('Submitting:', { symbol, name, assetClass, assetType, currency, region, subCategory, exchange, isin })
+    setIsFormOpen(false)
+    // フォームリセット
     setSymbol('')
     setName('')
     setAssetClass('Equity')
-    setAssetType(undefined)
-    setRegion(undefined)
-    setSubCategory(undefined)
-    setCurrency('JPY')
+    setAssetType('')
+    setCurrency('USD')
+    setRegion('')
+    setSubCategory('')
     setExchange('')
     setIsin('')
-    setEditingAsset(null)
   }
 
-  const handleEdit = (asset: Asset) => {
-    setEditingAsset(asset)
-    setSymbol(asset.symbol)
-    setName(asset.name)
-    setAssetClass(asset.asset_class as AssetClass || 'Equity')
-    setAssetType(asset.asset_type as AssetType || undefined)
-    setRegion(asset.region as Region || undefined)
-    setSubCategory(asset.sub_category || undefined)
-    setCurrency(asset.currency)
-    setExchange(asset.exchange || '')
-    setIsin(asset.isin || '')
-    setIsFormVisible(true)
-  }
-
-  const handleDelete = async (assetId: number) => {
-    if (!confirm('この資産を削除しますか？')) return
-    
-    try {
-      await assetsAPI.delete(assetId)
-      await fetchAssets()
-    } catch (error) {
-      console.error('Failed to delete asset:', error)
-      alert('削除に失敗しました')
-    }
-  }
-
-  const handleSubmit = async () => {
-    const assetData: AssetCreate = {
-      symbol,
-      name,
-      asset_class: assetClass,
-      ...(assetType && { asset_type: assetType }),
-      ...(region && { region }),
-      ...(subCategory && { sub_category: subCategory }),
-      currency,
-      ...(exchange && { exchange }),
-      ...(isin && { isin }),
-    }
-
-    try {
-      if (editingAsset) {
-        // 編集
-        await assetsAPI.update(editingAsset.id, assetData)
-      } else {
-        // 新規作成
-        await assetsAPI.create(assetData)
-      }
-      
-      await fetchAssets()
-      resetForm()
-      setIsFormVisible(false)
-    } catch (error) {
-      console.error('Asset operation failed:', error)
-      alert(editingAsset ? '更新に失敗しました' : '登録に失敗しました')
-    }
-  }
-
-  const handleCancel = () => {
-    resetForm()
-    setIsFormVisible(false)
-  }
+  const filteredAssets = assets.filter(asset =>
+    asset.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    asset.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
+      {/* ヘッダー */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">資産管理</h1>
-        <Button 
-          onClick={() => setIsFormVisible(true)}
-        >
-          新しい資産を追加
+        <h1 className="text-3xl font-bold">資産管理</h1>
+        <Button onClick={() => setIsFormOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          資産を追加
         </Button>
       </div>
 
-      {/* 資産登録・編集フォーム */}
-      {isFormVisible && (
+      {/* 検索バー */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="ティッカーシンボルまたは名前で検索..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* 資産登録フォーム */}
+      {isFormOpen && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              {editingAsset ? '資産を編集' : '新しい資産を登録'}
-            </CardTitle>
+            <CardTitle>新しい資産を登録</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  ティッカー・シンボル *
-                </label>
-                <input
-                  type="text"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value)}
-                  className="w-full p-2 border rounded-md text-black"
-                  placeholder="例: BTC, TSLA, 1306"
-                  required
-                />
+          <CardContent>
+            <div className="space-y-6">
+              {/* 基本情報セクション */}
+              <div className="bg-muted/20 p-4 rounded-lg space-y-4">
+                <h3 className="text-lg font-semibold text-primary">基本情報</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="symbol">ティッカーシンボル *</Label>
+                    <Input
+                      id="symbol"
+                      placeholder="例: AAPL, BTC"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="name">資産名 *</Label>
+                    <Input
+                      id="name"
+                      placeholder="例: Apple Inc."
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  名称 *
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-2 border rounded-md text-black"
-                  placeholder="例: ビットコイン, テスラ"
-                  required
-                />
+              {/* 分類情報セクション */}
+              <div className="bg-muted/20 p-4 rounded-lg space-y-4">
+                <h3 className="text-lg font-semibold text-primary">分類情報</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="assetClass">資産クラス *</Label>
+                    <select
+                      id="assetClass"
+                      value={assetClass}
+                      onChange={(e) => handleAssetClassChange(e.target.value as AssetClass)}
+                      className="w-full p-2 border border-input rounded-md bg-background"
+                    >
+                      {Object.entries(ASSET_CLASS_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="assetType">資産タイプ</Label>
+                    <select
+                      id="assetType"
+                      value={assetType}
+                      onChange={(e) => setAssetType(e.target.value as AssetType)}
+                      className="w-full p-2 border border-input rounded-md bg-background"
+                    >
+                      <option value="">選択してください</option>
+                      {ASSET_TYPE_OPTIONS[assetClass]?.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="currency">通貨</Label>
+                    <select
+                      id="currency"
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="w-full p-2 border border-input rounded-md bg-background"
+                    >
+                      <option value="JPY">JPY (日本円)</option>
+                      <option value="USD">USD (米ドル)</option>
+                      <option value="EUR">EUR (ユーロ)</option>
+                      <option value="GBP">GBP (英ポンド)</option>
+                      <option value="BTC">BTC (ビットコイン)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="region">地域</Label>
+                    <select
+                      id="region"
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                      className="w-full p-2 border border-input rounded-md bg-background"
+                    >
+                      <option value="">選択してください</option>
+                      {REGION_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* サブカテゴリ（自由記載）- 2列で配置 */}
+                <div>
+                  <Label htmlFor="subCategory">サブカテゴリ（自由記載）</Label>
+                  <Input
+                    id="subCategory"
+                    placeholder="例: 大型グロース、高配当、テクノロジー"
+                    value={subCategory}
+                    onChange={(e) => setSubCategory(e.target.value)}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    独自の分類や特徴を自由に記載できます
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  資産クラス *
-                </label>
-                <select
-                  value={assetClass}
-                  onChange={(e) => setAssetClass(e.target.value as AssetClass)}
-                  className="w-full p-2 border rounded-md text-black"
-                  required
-                >
-                  <option value="CashEq">現金等価物</option>
-                  <option value="FixedIncome">債券</option>
-                  <option value="Equity">株式</option>
-                  <option value="RealAsset">実物資産</option>
-                  <option value="Crypto">暗号資産</option>
-                </select>
+              {/* 詳細情報セクション */}
+              <div className="bg-muted/20 p-4 rounded-lg space-y-4">
+                <h3 className="text-lg font-semibold text-primary">詳細情報</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="exchange">取引所</Label>
+                    <Input
+                      id="exchange"
+                      placeholder="例: NASDAQ, NYSE"
+                      value={exchange}
+                      onChange={(e) => setExchange(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="isin">ISINコード</Label>
+                    <Input
+                      id="isin"
+                      placeholder="例: US0378331005"
+                      value={isin}
+                      onChange={(e) => setIsin(e.target.value.toUpperCase())}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  資産タイプ
-                </label>
-                <select
-                  value={assetType || ''}
-                  onChange={(e) => setAssetType(e.target.value as AssetType || undefined)}
-                  className="w-full p-2 border rounded-md text-black"
-                >
-                  <option value="">選択してください</option>
-                  <option value="Savings">普通預金</option>
-                  <option value="MMF">MMF</option>
-                  <option value="Stablecoin">ステーブルコイン</option>
-                  <option value="GovBond">国債</option>
-                  <option value="CorpBond">社債</option>
-                  <option value="BondETF">債券ETF</option>
-                  <option value="DirectStock">個別株</option>
-                  <option value="EquityETF">株式ETF</option>
-                  <option value="MutualFund">投資信託</option>
-                  <option value="REIT">REIT</option>
-                  <option value="Commodity">コモディティ</option>
-                  <option value="GoldETF">金ETF</option>
-                  <option value="Crypto">暗号資産</option>
-                </select>
+              {/* ボタン */}
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
+                  キャンセル
+                </Button>
+                <Button onClick={handleSubmit}>登録</Button>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  地域
-                </label>
-                <select
-                  value={region || ''}
-                  onChange={(e) => setRegion(e.target.value as Region || undefined)}
-                  className="w-full p-2 border rounded-md text-black"
-                >
-                  <option value="">選択してください</option>
-                  <option value="JP">日本</option>
-                  <option value="US">米国</option>
-                  <option value="EU">欧州</option>
-                  <option value="DM">先進国</option>
-                  <option value="EM">新興国</option>
-                  <option value="GL">グローバル</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  通貨 *
-                </label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full p-2 border rounded-md text-black"
-                  required
-                >
-                  <option value="JPY">JPY</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="BTC">BTC</option>
-                  <option value="ETH">ETH</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  取引所
-                </label>
-                <input
-                  type="text"
-                  value={exchange}
-                  onChange={(e) => setExchange(e.target.value)}
-                  className="w-full p-2 border rounded-md text-black"
-                  placeholder="例: TSE, NASDAQ"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  ISINコード
-                </label>
-                <input
-                  type="text"
-                  value={isin}
-                  onChange={(e) => setIsin(e.target.value)}
-                  className="w-full p-2 border rounded-md text-black"
-                  placeholder="例: JP3436100006"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                onClick={handleSubmit}
-              >
-                {editingAsset ? '更新' : '登録'}
-              </Button>
-              <Button
-                onClick={handleCancel}
-                variant="outline"
-              >
-                キャンセル
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -287,66 +305,46 @@ export default function AssetsPage() {
       {/* 資産一覧 */}
       <Card>
         <CardHeader>
-          <CardTitle>登録済みの資産</CardTitle>
+          <CardTitle>登録済み資産 ({filteredAssets.length}件)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-left table-auto">
+            <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="px-4 py-2">ティッカー</th>
-                  <th className="px-4 py-2">名称</th>
-                  <th className="px-4 py-2">資産クラス</th>
-                  <th className="px-4 py-2">タイプ</th>
-                  <th className="px-4 py-2">地域</th>
-                  <th className="px-4 py-2">通貨</th>
-                  <th className="px-4 py-2">操作</th>
+                  <th className="text-left p-2 font-semibold">ティッカー</th>
+                  <th className="text-left p-2 font-semibold">名称</th>
+                  <th className="text-left p-2 font-semibold">資産クラス</th>
+                  <th className="text-left p-2 font-semibold">タイプ</th>
+                  <th className="text-left p-2 font-semibold">サブカテゴリ</th>
+                  <th className="text-left p-2 font-semibold">地域</th>
+                  <th className="text-left p-2 font-semibold">通貨</th>
+                  <th className="text-left p-2 font-semibold">取引所</th>
                 </tr>
               </thead>
               <tbody>
-                {assets.map((asset) => (
-                  <tr key={asset.id} className="border-b hover:bg-gray-100 dark:hover:bg-gray-800">
-                    <td className="px-4 py-2 font-mono">{asset.symbol}</td>
-                    <td className="px-4 py-2">{asset.name}</td>
-                    <td className="px-4 py-2">{asset.asset_class}</td>
-                    <td className="px-4 py-2">{asset.asset_type || '-'}</td>
-                    <td className="px-4 py-2">
-                      {asset.region === 'DM' ? '先進国' : 
-                       asset.region === 'JP' ? '日本' :
-                       asset.region === 'US' ? '米国' :
-                       asset.region === 'EU' ? '欧州' :
-                       asset.region === 'EM' ? '新興国' :
-                       asset.region === 'GL' ? 'グローバル' :
-                       asset.region || '-'}
+                {filteredAssets.map((asset) => (
+                  <tr key={asset.id} className="border-b hover:bg-muted/50">
+                    <td className="p-2 font-mono font-semibold">{asset.symbol}</td>
+                    <td className="p-2">{asset.name}</td>
+                    <td className="p-2">
+                      <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                        {ASSET_CLASS_LABELS[asset.asset_class as AssetClass]}
+                      </span>
                     </td>
-                    <td className="px-4 py-2">{asset.currency}</td>
-                    <td className="px-4 py-2">
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleEdit(asset)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          編集
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(asset.id)}
-                          variant="destructive"
-                          size="sm"
-                        >
-                          削除
-                        </Button>
-                      </div>
+                    <td className="p-2">{asset.asset_type}</td>
+                    <td className="p-2">
+                      <span className="text-xs text-muted-foreground">
+                        {asset.sub_category || '-'}
+                      </span>
                     </td>
+                    <td className="p-2">{asset.region || '-'}</td>
+                    <td className="p-2 font-mono">{asset.currency}</td>
+                    <td className="p-2">{asset.exchange || '-'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {assets.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                登録されている資産がありません
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

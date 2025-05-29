@@ -228,3 +228,39 @@ async def search_assets(
             "display_category": a.display_category
         } for a in assets
     ]
+    
+@router.get("/class-options")
+async def get_asset_class_options(
+    current_user: User = Depends(get_current_user)
+):
+    """資産クラスごとの選択肢を取得"""
+    from app.models.asset import ASSET_TYPE_MAPPING, AssetClass, AssetType
+    
+    return {
+        "asset_classes": [{"value": cls.value, "label": cls.value} for cls in AssetClass],
+        "asset_type_mapping": {
+            cls.value: [{"value": typ.value, "label": typ.value} for typ in types]
+            for cls, types in ASSET_TYPE_MAPPING.items()
+        },
+        "regions": [{"value": r.value, "label": r.value} for r in Region]
+    }
+
+@router.post("/validate")
+async def validate_asset_data(
+    asset_data: AssetCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """資産データのバリデーション"""
+    from app.models.asset import ASSET_TYPE_MAPPING
+    
+    errors = []
+    
+    # 資産タイプと資産クラスの整合性チェック
+    if asset_data.asset_type and asset_data.asset_class:
+        valid_types = ASSET_TYPE_MAPPING.get(asset_data.asset_class, [])
+        if asset_data.asset_type not in valid_types:
+            errors.append(f"Asset type {asset_data.asset_type} is not valid for class {asset_data.asset_class}")
+    
+    # その他のバリデーション...
+    
+    return {"valid": len(errors) == 0, "errors": errors}
