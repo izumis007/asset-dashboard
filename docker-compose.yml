@@ -33,17 +33,13 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
+      # 統一された形式で設定
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      SECRET_KEY: ${SECRET_KEY}
-      TWELVE_DATA_API_KEY: ${TWELVE_DATA_API_KEY}
-      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY}
-      MONEY_FORWARD_EMAIL: ${MONEY_FORWARD_EMAIL}
-      MONEY_FORWARD_PASSWORD: ${MONEY_FORWARD_PASSWORD}
       TZ: Asia/Tokyo
     volumes:
       - ./backend:/app
-      - .env:/app/.env
+      # .envマウントを削除
     ports:
       - "8000:8000"
     depends_on:
@@ -59,12 +55,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: asset_dashboard_celery_worker
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      SECRET_KEY: ${SECRET_KEY}
-      TWELVE_DATA_API_KEY: ${TWELVE_DATA_API_KEY}
-      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY}
       TZ: Asia/Tokyo
     volumes:
       - ./backend:/app
@@ -81,10 +76,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: asset_dashboard_celery_beat
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      SECRET_KEY: ${SECRET_KEY}
       TZ: Asia/Tokyo
     volumes:
       - ./backend:/app
@@ -96,7 +92,6 @@ services:
     restart: unless-stopped
     command: celery -A app.tasks.scheduled_tasks:celery_app beat --loglevel=info
 
-  
   frontend:
     build:
       context: ./frontend
@@ -123,10 +118,10 @@ services:
       context: ./scraper
       dockerfile: Dockerfile
     container_name: asset_dashboard_scraper
+    env_file:
+      - .env
     environment:
       API_URL: http://backend:8000
-      MONEY_FORWARD_EMAIL: ${MONEY_FORWARD_EMAIL}
-      MONEY_FORWARD_PASSWORD: ${MONEY_FORWARD_PASSWORD}
       TZ: Asia/Tokyo
     volumes:
       - ./scraper:/app

@@ -6,8 +6,14 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
     
+    # PostgreSQL (Docker Compose用)
+    POSTGRES_DB: str = "asset_dashboard"
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str
+    
     # Redis
     REDIS_URL: str
+    REDIS_PASSWORD: str = ""
     
     # Security
     SECRET_KEY: str
@@ -48,9 +54,15 @@ class Settings(BaseSettings):
     PRICE_FETCH_HOUR: int = 0  # 00:30 JST
     PRICE_FETCH_MINUTE: int = 30
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    # Docker/Deployment
+    DOMAIN: str = "localhost"
+    NEXT_PUBLIC_API_URL: str = "http://localhost:8000"
+    
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "allow"  # 追加の環境変数を許可
+    }
 
 settings = Settings()
 print("DATABASE_URL:", os.getenv("DATABASE_URL"))

@@ -28,10 +28,12 @@ export interface Asset {
   asset_class?: AssetClass
   asset_type?: AssetType
   region?: Region
-  sub_category?: string
   currency: string
   exchange?: string
   isin?: string
+  // 後方互換性のため
+  category?: AssetCategory
+  sub_category?: string
   // 表示用
   display_category: string
 }
@@ -46,12 +48,10 @@ export interface AssetCreate {
   asset_class: AssetClass
   asset_type?: AssetType
   region?: Region
-  sub_category?: string
   currency: string
   exchange?: string
   isin?: string
 }
-
 
 // ─────────────────────────────────────────────
 // 更新用 (PUT /api/assets/:id)
@@ -62,7 +62,6 @@ export interface AssetUpdate {
   asset_class?: AssetClass
   asset_type?: AssetType
   region?: Region
-  sub_category?: string
   currency?: string
   exchange?: string
   isin?: string

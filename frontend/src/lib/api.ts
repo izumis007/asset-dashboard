@@ -49,16 +49,21 @@ interface AuthState {
   setToken: (token: string | null) => void
   setUser: (user: User | null) => void
   logout: () => void
+  isAuthenticated: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       setToken: (token) => set({ token }),
       setUser: (user) => set({ user }),
       logout: () => set({ token: null, user: null }),
+      isAuthenticated: () => {
+        const token = get().token
+        return token !== null && token !== undefined && token !== ''
+      }
     }),
     {
       name: 'auth-storage',
@@ -171,7 +176,7 @@ export const holdingsAPI = {
     return response.data
   },
 
-  create: async (data: Omit<Holding, 'id' | 'asset' | 'cost_per_unit'> & { asset_id: number }) => {
+  create: async (data: HoldingCreate) => {
     const response = await api.post<Holding>('/api/holdings', data)
     return response.data
   },

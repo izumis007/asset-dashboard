@@ -1,24 +1,40 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { dashboardAPI } from '@/lib/api'
+import { dashboardAPI, useAuthStore } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NetWorthChart } from '@/components/charts/NetWorthChart'
 import { AllocationPieChart } from '@/components/charts/AllocationPieChart'
 import { formatCurrency, formatPercentage } from '@/lib/utils'
-import { ArrowUpIcon, ArrowDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ArrowUpIcon, ArrowDownIcon, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
-import { useAuthStore } from "@/lib/api"
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const router = useRouter()
   
-  const token = useAuthStore(state => state.token)
-  const { data, isLoading, refetch } = useQuery({
+  const { token, isAuthenticated } = useAuthStore()
+
+  // 認証チェック
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
+
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: dashboardAPI.overview,
-    enabled: !!token  // 
+    enabled: isAuthenticated(),
+    retry: (failureCount, error: any) => {
+      // 401エラーの場合はリトライしない
+      if (error?.response?.status === 401) {
+        return false
+      }
+      return failureCount < 3
+    }
   })
 
   const handleRefreshPrices = async () => {
@@ -26,21 +42,58 @@ export default function DashboardPage() {
     try {
       await dashboardAPI.refreshPrices()
       await refetch()
+    } catch (error) {
+      console.error('価格更新エラー:', error)
     } finally {
       setIsRefreshing(false)
     }
   }
 
+  // 認証されていない場合は何も表示しない
+  if (!isAuthenticated()) {
+    return null
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse">Loading...</div>
+        <div className="animate-pulse">ダッシュボードを読み込み中...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="text-red-500 mb-4">
+          データの読み込みに失敗しました
+        </div>
+        <Button onClick={() => refetch()}>
+          再試行
+        </Button>
       </div>
     )
   }
 
   if (!data) {
-    return null
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Asset Dashboard</h1>
+          <p className="text-muted-foreground mb-4">
+            まだデータがありません。資産と保有情報を登録してください。
+          </p>
+          <div className="space-x-4">
+            <Button onClick={() => router.push('/assets')}>
+              資産を登録
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/holdings')}>
+              保有情報を登録
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const isPositiveChange = data.change_percentage >= 0
@@ -56,8 +109,12 @@ export default function DashboardPage() {
           variant="outline"
           size="sm"
         >
-          <ArrowPathIcon className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh Prices
+          {isRefreshing ? (
+            <RefreshCw className="animate-spin h-4 w-4 mr-2" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          価格更新
         </Button>
       </div>
 
@@ -65,7 +122,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Net Worth (JPY)</CardTitle>
+            <CardTitle className="text-sm font-medium">総資産 (JPY)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -84,28 +141,28 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Net Worth (USD)</CardTitle>
+            <CardTitle className="text-sm font-medium">総資産 (USD)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(data.total_usd, 'USD')}
             </div>
             <div className="text-sm text-muted-foreground">
-              1 USD = ¥{(data.total_jpy / data.total_usd).toFixed(2)}
+              1 USD = ¥{data.total_usd > 0 ? (data.total_jpy / data.total_usd).toFixed(2) : '0'}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Bitcoin Holdings</CardTitle>
+            <CardTitle className="text-sm font-medium">ビットコイン保有量</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               ₿{data.total_btc.toFixed(8)}
             </div>
             <div className="text-sm text-muted-foreground">
-              {formatCurrency(data.breakdown_by_category.crypto || 0, 'JPY')}
+              {formatCurrency(data.breakdown_by_category?.crypto || 0, 'JPY')}
             </div>
           </CardContent>
         </Card>
@@ -115,7 +172,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Net Worth Trend</CardTitle>
+            <CardTitle>資産推移</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[400px]">
@@ -126,7 +183,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Asset Allocation</CardTitle>
+            <CardTitle>資産配分</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[400px]">
@@ -140,11 +197,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>By Account Type</CardTitle>
+            <CardTitle>口座種別別</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {Object.entries(data.breakdown_by_account_type).map(([type, value]) => (
+              {Object.entries(data.breakdown_by_account_type || {}).map(([type, value]) => (
                 <div key={type} className="flex justify-between items-center">
                   <span className="capitalize">{type}</span>
                   <span className="font-medium">{formatCurrency(value, 'JPY')}</span>
@@ -156,11 +213,11 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>By Currency</CardTitle>
+            <CardTitle>通貨別</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {Object.entries(data.breakdown_by_currency).map(([currency, value]) => (
+              {Object.entries(data.breakdown_by_currency || {}).map(([currency, value]) => (
                 <div key={currency} className="flex justify-between items-center">
                   <span>{currency}</span>
                   <span className="font-medium">

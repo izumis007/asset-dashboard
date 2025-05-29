@@ -15,25 +15,21 @@ router = APIRouter()
 class AssetCreate(BaseModel):
     symbol: str
     name: str
-    asset_class: Optional[AssetClass] = None
+    asset_class: AssetClass
     asset_type: Optional[AssetType] = None
     region: Optional[Region] = None
-    category: Optional[AssetCategory] = None
     currency: str = "JPY"
     exchange: Optional[str] = None
     isin: Optional[str] = None
-    sub_category: Optional[str] = None
 
 class AssetUpdate(BaseModel):
     name: Optional[str] = None
     asset_class: Optional[AssetClass] = None
     asset_type: Optional[AssetType] = None
     region: Optional[Region] = None
-    category: Optional[AssetCategory] = None
     exchange: Optional[str] = None
     isin: Optional[str] = None
     currency: Optional[str] = None
-    sub_category: Optional[str] = None
 
 class AssetResponse(BaseModel):
     id: int
@@ -46,7 +42,6 @@ class AssetResponse(BaseModel):
     currency: str
     exchange: Optional[str] = None
     isin: Optional[str] = None
-    sub_category: Optional[str] = None
     display_category: str
 
     class Config:
@@ -87,7 +82,6 @@ async def get_assets(
             currency=a.currency,
             exchange=a.exchange,
             isin=a.isin,
-            sub_category=a.sub_category,
             display_category=a.display_category,
         ) for a in assets
     ]
@@ -98,6 +92,7 @@ async def create_asset(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # 既存の資産をチェック（同じsymbolとasset_typeの組み合わせ）
     result = await db.execute(
         select(Asset).where(
             Asset.symbol == asset_data.symbol,
@@ -105,9 +100,12 @@ async def create_asset(
         )
     )
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Asset already exists")
+        raise HTTPException(status_code=400, detail="同じティッカーと資産タイプの組み合わせが既に存在します")
 
-    asset = Asset(**asset_data.dict())
+    # 新しい資産を作成
+    asset_dict = asset_data.dict()
+    asset = Asset(**asset_dict)
+    
     db.add(asset)
     await db.commit()
     await db.refresh(asset)
@@ -123,8 +121,7 @@ async def create_asset(
         currency=asset.currency,
         exchange=asset.exchange,
         isin=asset.isin,
-        sub_category=asset.sub_category,
-        display_category=asset.display_category,
+        display_category=asset.display_category
     )
 
 @router.get("/enums")
@@ -146,6 +143,7 @@ async def get_asset(
     asset = result.scalar_one_or_none()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
+    
     return AssetResponse(
         id=asset.id,
         symbol=asset.symbol,
@@ -157,8 +155,7 @@ async def get_asset(
         currency=asset.currency,
         exchange=asset.exchange,
         isin=asset.isin,
-        sub_category=asset.sub_category,
-        display_category=asset.display_category,
+        display_category=asset.display_category
     )
 
 @router.put("/{asset_id}", response_model=AssetResponse)
@@ -190,8 +187,7 @@ async def update_asset(
         currency=asset.currency,
         exchange=asset.exchange,
         isin=asset.isin,
-        sub_category=asset.sub_category,
-        display_category=asset.display_category,
+        display_category=asset.display_category
     )
 
 @router.delete("/{asset_id}")
@@ -205,8 +201,9 @@ async def delete_asset(
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    if asset.holdings:
-        raise HTTPException(status_code=400, detail="Cannot delete asset with holdings")
+    # holdingsがあるかチェック
+    if hasattr(asset, 'holdings') and asset.holdings:
+        raise HTTPException(status_code=400, detail="保有情報がある資産は削除できません")
 
     await db.delete(asset)
     await db.commit()
@@ -235,7 +232,6 @@ async def search_assets(
             "region": a.region.value if a.region else None,
             "category": a.category.value if a.category else None,
             "currency": a.currency,
-            "sub_category": a.sub_category,
             "display_category": a.display_category
         } for a in assets
     ]
