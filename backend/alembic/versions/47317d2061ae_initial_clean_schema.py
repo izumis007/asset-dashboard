@@ -1,18 +1,18 @@
-"""Initial schema
+"""Initial clean schema
 
-Revision ID: b52ca40ba28e
+Revision ID: 47317d2061ae
 Revises: 
-Create Date: 2025-05-27 17:32:49.684432
+Create Date: 2025-05-29 10:46:15.206340
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-import fastapi_users_db_sqlalchemy
+from fastapi_users_db_sqlalchemy.generics import GUID
 
 # revision identifiers, used by Alembic.
-revision: str = 'b52ca40ba28e'
+revision: str = '47317d2061ae'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,17 +24,17 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('symbol', sa.String(length=20), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('category', sa.Enum('CashEq', 'FixedIncome', 'Equity', 'RealAsset', 'Crypto', name='assetclass'), nullable=False),
-    sa.Column('asset_type', sa.Enum('Savings', 'MMF', 'Stablecoin', 'GovBond', 'CorpBond', 'BondETF', 'DirectStock', 'EquityETF', 'MutualFund', 'REIT', 'Commodity', 'GoldETF', 'Crypto', name='assettype'), nullable=True),
+    sa.Column('asset_class', sa.Enum('CASHEQ', 'FIXED_INCOME', 'EQUITY', 'REAL_ASSET', 'CRYPTO', name='assetclass'), nullable=True),
+    sa.Column('asset_type', sa.Enum('SAVINGS', 'MMF', 'STABLECOIN', 'GOV_BOND', 'CORP_BOND', 'BOND_ETF', 'DIRECT_STOCK', 'EQUITY_ETF', 'MUTUAL_FUND', 'REIT', 'COMMODITY', 'GOLD_ETF', 'CRYPTO', name='assettype'), nullable=True),
     sa.Column('region', sa.Enum('US', 'JP', 'EU', 'EM', 'GL', name='region'), nullable=True),
-    sa.Column('sub_category', sa.String(length=100), nullable=True),
+    sa.Column('category', sa.Enum('EQUITY', 'ETF', 'FUND', 'BOND', 'CRYPTO', 'CASH', name='assetcategory'), nullable=True),
     sa.Column('currency', sa.String(length=3), nullable=False),
     sa.Column('exchange', sa.String(length=50), nullable=True),
     sa.Column('isin', sa.String(length=12), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('symbol', 'category', name='_symbol_category_uc')
+    sa.UniqueConstraint('symbol', 'asset_type', name='_symbol_asset_type_uc')
     )
     op.create_index(op.f('ix_assets_id'), 'assets', ['id'], unique=False)
     op.create_index(op.f('ix_assets_symbol'), 'assets', ['symbol'], unique=False)
@@ -75,7 +75,7 @@ def upgrade() -> None:
     sa.Column('totp_enabled', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
+    sa.Column('id', GUID(), nullable=False),
     sa.Column('email', sa.String(length=320), nullable=False),
     sa.Column('hashed_password', sa.String(length=1024), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),

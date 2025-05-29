@@ -43,6 +43,7 @@ services:
       TZ: Asia/Tokyo
     volumes:
       - ./backend:/app
+      - .env:/app/.env
     ports:
       - "8000:8000"
     depends_on:
@@ -95,19 +96,19 @@ services:
     restart: unless-stopped
     command: celery -A app.tasks.scheduled_tasks:celery_app beat --loglevel=info
 
+  
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: asset_dashboard_frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_API_URL: http://backend:8000
+      NODE_ENV: development
       TZ: Asia/Tokyo
-      NEXT_TELEMETRY_DISABLED: 1  # テレメトリを無効化
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/.next
     ports:
       - "3000:3000"
     depends_on:

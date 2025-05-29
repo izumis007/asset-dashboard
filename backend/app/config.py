@@ -53,3 +53,4 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 settings = Settings()
+print("DATABASE_URL:", os.getenv("DATABASE_URL"))

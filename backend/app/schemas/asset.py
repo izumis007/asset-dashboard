@@ -1,18 +1,39 @@
 from pydantic import BaseModel
-from typing import Optional, Literal
+from typing import Optional
+from enum import Enum
 
 # ───────────────
-# Enum型（Pydantic側）
+# Enum 定義
 # ───────────────
 
-AssetClass = Literal['CashEq', 'FixedIncome', 'Equity', 'RealAsset', 'Crypto']
-AssetType = Literal[
-    'Savings', 'MMF', 'Stablecoin',
-    'GovBond', 'CorpBond', 'BondETF',
-    'DirectStock', 'EquityETF', 'MutualFund',
-    'REIT', 'Commodity', 'GoldETF', 'Crypto'
-]
-Region = Literal['US', 'JP', 'EU', 'EM', 'GL']
+class AssetClass(str, Enum):
+    CashEq = "CashEq"
+    FixedIncome = "FixedIncome"
+    Equity = "Equity"
+    RealAsset = "RealAsset"
+    Crypto = "Crypto"
+
+class AssetType(str, Enum):
+    Savings = "Savings"
+    MMF = "MMF"
+    Stablecoin = "Stablecoin"
+    GovBond = "GovBond"
+    CorpBond = "CorpBond"
+    BondETF = "BondETF"
+    DirectStock = "DirectStock"
+    EquityETF = "EquityETF"
+    MutualFund = "MutualFund"
+    REIT = "REIT"
+    Commodity = "Commodity"
+    GoldETF = "GoldETF"
+    Crypto = "Crypto"
+
+class Region(str, Enum):
+    US = "US"
+    JP = "JP"
+    EU = "EU"
+    EM = "EM"
+    GL = "GL"
 
 # ───────────────
 # 入力用スキーマ
@@ -21,7 +42,7 @@ Region = Literal['US', 'JP', 'EU', 'EM', 'GL']
 class AssetCreate(BaseModel):
     symbol: str
     name: str
-    category: AssetClass
+    asset_class: AssetClass
     asset_type: Optional[AssetType] = None
     region: Optional[Region] = None
     sub_category: Optional[str] = None
@@ -37,7 +58,7 @@ class AssetOut(BaseModel):
     id: int
     symbol: str
     name: str
-    category: AssetClass
+    asset_class: AssetClass
     asset_type: Optional[AssetType]
     region: Optional[Region]
     sub_category: Optional[str]
@@ -46,4 +67,5 @@ class AssetOut(BaseModel):
     isin: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic v2
+        # orm_mode = True       # Pydantic v1の場合はこちら

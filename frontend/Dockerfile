@@ -2,20 +2,21 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dependencies first for better caching
+# Install dependencies first
 COPY package*.json ./
 RUN npm install
 
-# Copy app files
+# Copy all app files
 COPY . .
 
 # Build the app
 RUN npm run build
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-USER nextjs
+# Change ownership of .next directory entirely (not just cache/)
+RUN chown -R node:node .next
+
+# Use non-root user
+USER node
 
 EXPOSE 3000
 

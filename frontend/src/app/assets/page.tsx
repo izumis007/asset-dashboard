@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { assetsAPI } from '@/lib/api'
-import { Asset, AssetCreate } from '@/types'
+import { Asset, AssetCreate, AssetClass, AssetType, Region } from '@/types'
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
+
   const [symbol, setSymbol] = useState('')
   const [name, setName] = useState('')
-  const [category, setCategory] = useState<'equity' | 'etf' | 'fund' | 'bond' | 'crypto' | 'cash'>('equity')
-  const [subCategory, setSubCategory] = useState('')
+  const [assetClass, setAssetClass] = useState<AssetClass>('Equity')
+  const [assetType, setAssetType] = useState<AssetType | undefined>(undefined)
+  const [region, setRegion] = useState<Region | undefined>(undefined)
+  const [subCategory, setSubCategory] = useState<string | undefined>(undefined)
   const [currency, setCurrency] = useState('JPY')
   const [exchange, setExchange] = useState('')
   const [isin, setIsin] = useState('')
@@ -26,24 +29,33 @@ export default function AssetsPage() {
     const newAsset: AssetCreate = {
       symbol,
       name,
-      category,
-      sub_category: subCategory,
+      asset_class: assetClass || undefined,
+      ...(assetType && { asset_type: assetType }),
+      ...(region && { region }),
+      ...(subCategory && { sub_category: subCategory }),
       currency,
-      exchange,
-      isin,
+      ...(exchange && { exchange }),
+      ...(isin && { isin }),
     }
-    await assetsAPI.create(newAsset)
-    const res = await assetsAPI.list()
-    setAssets(res)
-
-    // Reset form
-    setSymbol('')
-    setName('')
-    setCategory('equity')
-    setSubCategory('')
-    setCurrency('JPY')
-    setExchange('')
-    setIsin('')
+  
+    try {
+      await assetsAPI.create(newAsset)
+      const res = await assetsAPI.list()
+      setAssets(res)
+  
+      // 入力フォームのリセット
+      setSymbol('')
+      setName('')
+      setAssetClass('Equity')
+      setAssetType(undefined)
+      setRegion(undefined)
+      setSubCategory(undefined)
+      setCurrency('JPY')
+      setExchange('')
+      setIsin('')
+    } catch (error) {
+      console.error("Asset creation failed:", error)
+    }
   }
 
   return (
@@ -65,23 +77,36 @@ export default function AssetsPage() {
           placeholder="名称（例: ビットコイン, テスラ）"
         />
         <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value as AssetCreate['category'])}
+          value={assetClass}
+          onChange={(e) => setAssetClass(e.target.value as AssetClass)}
           className="w-full p-2 rounded text-black"
         >
-          <option value="equity">株式</option>
-          <option value="etf">ETF</option>
-          <option value="fund">投資信託</option>
-          <option value="bond">債券</option>
-          <option value="crypto">暗号資産</option>
-          <option value="cash">現金</option>
+          <option value="CashEq">現金等</option>
+          <option value="FixedIncome">債券</option>
+          <option value="Equity">株式</option>
+          <option value="RealAsset">実物資産</option>
+          <option value="Crypto">暗号資産</option>
         </select>
+        <input
+          type="text"
+          value={assetType}
+          onChange={(e) => setAssetType(e.target.value as AssetType)}
+          className="w-full p-2 rounded text-black"
+          placeholder="資産タイプ（任意）"
+        />
+        <input
+          type="text"
+          value={region}
+          onChange={(e) => setRegion(e.target.value as Region)}
+          className="w-full p-2 rounded text-black"
+          placeholder="地域（任意、例: JP, US）"
+        />
         <input
           type="text"
           value={subCategory}
           onChange={(e) => setSubCategory(e.target.value)}
           className="w-full p-2 rounded text-black"
-          placeholder="サブカテゴリ（例: S&P500、米国債、タンス預金）"
+          placeholder="サブカテゴリ（任意）"
         />
         <select
           value={currency}
@@ -121,8 +146,9 @@ export default function AssetsPage() {
           <tr className="border-b">
             <th className="px-2 py-1">ティッカー</th>
             <th className="px-2 py-1">名称</th>
-            <th className="px-2 py-1">カテゴリ</th>
-            <th className="px-2 py-1">サブカテゴリ</th>
+            <th className="px-2 py-1">分類</th>
+            <th className="px-2 py-1">タイプ</th>
+            <th className="px-2 py-1">地域</th>
             <th className="px-2 py-1">通貨</th>
           </tr>
         </thead>
@@ -131,8 +157,9 @@ export default function AssetsPage() {
             <tr key={asset.id} className="border-b">
               <td className="px-2 py-1">{asset.symbol}</td>
               <td className="px-2 py-1">{asset.name}</td>
-              <td className="px-2 py-1">{asset.category}</td>
-              <td className="px-2 py-1">{asset.sub_category || '-'}</td>
+              <td className="px-2 py-1">{asset.asset_class}</td>
+              <td className="px-2 py-1">{asset.asset_type || '-'}</td>
+              <td className="px-2 py-1">{asset.region || '-'}</td>
               <td className="px-2 py-1">{asset.currency}</td>
             </tr>
           ))}

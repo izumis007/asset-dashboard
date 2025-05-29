@@ -3,6 +3,14 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
+# app/models/holding.py の上部などに追加
+
+
+class OwnerType(str, enum.Enum):
+    self_ = "self"
+    spouse = "spouse"
+    child = "child"
+    special = "special"
 
 class AccountType(str, enum.Enum):
     NISA = "NISA"

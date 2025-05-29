@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { holdingsAPI, assetsAPI } from "@/lib/api"
-import type { Holding, Asset } from "@/types"
+import type { Holding, Asset, HoldingForm, AccountType } from "@/types"
 
 export default function HoldingsPage() {
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<HoldingForm>({
     asset_id: 0,
     quantity: '',
     cost_total: '',
@@ -17,24 +17,28 @@ export default function HoldingsPage() {
     notes: ''
   })
 
+
   useEffect(() => {
     holdingsAPI.list().then(setHoldings)
     assetsAPI.list().then(setAssets)
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await holdingsAPI.create({
-        ...form,
-        asset_id: Number(form.asset_id),
-        quantity: Number(form.quantity),
-        cost_total: Number(form.cost_total),
-      })
+        await holdingsAPI.create({
+            asset_id: Number(form.asset_id),
+            quantity: Number(form.quantity),
+            cost_total: Number(form.cost_total),
+            acquisition_date: form.acquisition_date,
+            account_type: form.account_type,
+            broker: form.broker || undefined,
+            notes: form.notes || undefined,
+          })
       const updated = await holdingsAPI.list()
       setHoldings(updated)
     } catch (err) {

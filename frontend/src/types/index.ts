@@ -1,6 +1,6 @@
-// ─────────────
+// ─────────────────────────────
 // 共通型定義
-// ─────────────
+// ─────────────────────────────
 
 export interface User {
   id: string
@@ -9,45 +9,76 @@ export interface User {
   totp_enabled: boolean
 }
 
-// ─────────────
-// 資産関連
-// ─────────────
+// 新しい分類システム
+export type AssetClass = 'CashEq' | 'FixedIncome' | 'Equity' | 'RealAsset' | 'Crypto'
+export type AssetType = 'Savings' | 'MMF' | 'Stablecoin' | 'GovBond' | 'CorpBond' | 'BondETF' | 'DirectStock' | 'EquityETF' | 'MutualFund' | 'REIT' | 'Commodity' | 'GoldETF' | 'Crypto'
+export type Region = 'US' | 'JP' | 'EU' | 'EM' | 'GL'
 
+// 旧分類システム（後方互換性）
 export type AssetCategory = 'equity' | 'etf' | 'fund' | 'bond' | 'crypto' | 'cash'
+
+// ─────────────────────────────────────────────
+// 資産 (Asset) のレスポンス型
+// ─────────────────────────────────────────────
 
 export interface Asset {
   id: number
   symbol: string
   name: string
-  category: AssetCategory
+  asset_class?: AssetClass
+  asset_type?: AssetType
+  region?: Region
+  sub_category?: string
+  currency: string
+  exchange?: string
+  isin?: string
+  // 表示用
+  display_category: string
+}
+
+// ─────────────────────────────────────────────
+// 新規作成用 (POST /api/assets)
+// ─────────────────────────────────────────────
+
+export interface AssetCreate {
+  symbol: string
+  name: string
+  asset_class: AssetClass
+  asset_type?: AssetType
+  region?: Region
   sub_category?: string
   currency: string
   exchange?: string
   isin?: string
 }
 
-export interface AssetCreate {
-  symbol: string
-  name: string
-  category: AssetCategory
+
+// ─────────────────────────────────────────────
+// 更新用 (PUT /api/assets/:id)
+// ─────────────────────────────────────────────
+
+export interface AssetUpdate {
+  name?: string
+  asset_class?: AssetClass
+  asset_type?: AssetType
+  region?: Region
   sub_category?: string
   currency?: string
   exchange?: string
   isin?: string
 }
 
-export interface AssetUpdate {
-  name?: string
-  exchange?: string
-  isin?: string
-  sub_category?: string
+export type AccountType = "NISA" | "iDeCo" | "taxable"
+
+export interface HoldingForm {
+  asset_id: number
+  quantity: string
+  cost_total: string
+  acquisition_date: string
+  account_type: AccountType
+  broker: string
+  notes: string
 }
-
-// ─────────────
-// 保有資産
-// ─────────────
-
-export type AccountType = 'NISA' | 'iDeCo' | 'taxable'
 
 export interface Holding {
   id: number
@@ -55,14 +86,21 @@ export interface Holding {
   quantity: number
   cost_total: number
   acquisition_date: string
-  account_type: AccountType
+  account_type: 'NISA' | 'iDeCo' | 'taxable'
+  broker?: string
+  notes?: string
+  cost_per_unit: number
+}
+
+export interface HoldingCreate {
+  asset_id: number
+  quantity: number
+  cost_total: number
+  acquisition_date: string
+  account_type: 'NISA' | 'iDeCo' | 'taxable'
   broker?: string
   notes?: string
 }
-
-// ─────────────
-// 価格情報
-// ─────────────
 
 export interface Price {
   id: number
@@ -75,10 +113,6 @@ export interface Price {
   volume?: number
   source?: string
 }
-
-// ─────────────
-// BTC取引履歴
-// ─────────────
 
 export interface BTCTrade {
   id: number
@@ -93,9 +127,17 @@ export interface BTCTrade {
   notes?: string
 }
 
-// ─────────────
-// ダッシュボード
-// ─────────────
+export interface BTCTradeCreate {
+  txid?: string
+  amount_btc: number
+  counter_value_jpy: number
+  jpy_rate: number
+  fee_btc?: number
+  fee_jpy?: number
+  timestamp: string
+  exchange?: string
+  notes?: string
+}
 
 export interface DashboardData {
   total_jpy: number
@@ -106,7 +148,6 @@ export interface DashboardData {
   breakdown_by_category: Record<string, number>
   breakdown_by_currency: Record<string, number>
   breakdown_by_account_type: Record<string, number>
-  breakdown_by_sub_category?: Record<string, number>
   history: Array<{
     date: string
     total_jpy: number
