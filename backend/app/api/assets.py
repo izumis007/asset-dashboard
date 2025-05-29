@@ -7,17 +7,18 @@ from app.database import get_db
 from app.models import Asset, User
 from app.api.auth import get_current_user
 from pydantic import BaseModel
-from app.models.asset import AssetClass, AssetType, Region, AssetCategory
+from app.models.asset import AssetClass, AssetType, Region
 
 router = APIRouter()
 
-# Pydantic models
+# Pydantic models - 古いcategoryを削除
 class AssetCreate(BaseModel):
     symbol: str
     name: str
-    asset_class: AssetClass
+    asset_class: AssetClass  # 必須にする
     asset_type: Optional[AssetType] = None
     region: Optional[Region] = None
+    sub_category: Optional[str] = None
     currency: str = "JPY"
     exchange: Optional[str] = None
     isin: Optional[str] = None
@@ -27,6 +28,7 @@ class AssetUpdate(BaseModel):
     asset_class: Optional[AssetClass] = None
     asset_type: Optional[AssetType] = None
     region: Optional[Region] = None
+    sub_category: Optional[str] = None
     exchange: Optional[str] = None
     isin: Optional[str] = None
     currency: Optional[str] = None
@@ -35,10 +37,10 @@ class AssetResponse(BaseModel):
     id: int
     symbol: str
     name: str
-    asset_class: Optional[str] = None
+    asset_class: str  # 必須にする
     asset_type: Optional[str] = None
     region: Optional[str] = None
-    category: Optional[str] = None
+    sub_category: Optional[str] = None
     currency: str
     exchange: Optional[str] = None
     isin: Optional[str] = None
@@ -53,7 +55,6 @@ async def get_assets(
     asset_class: Optional[AssetClass] = None,
     asset_type: Optional[AssetType] = None,
     region: Optional[Region] = None,
-    category: Optional[AssetCategory] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -64,8 +65,6 @@ async def get_assets(
         query = query.where(Asset.asset_type == asset_type)
     if region:
         query = query.where(Asset.region == region)
-    if category:
-        query = query.where(Asset.category == category)
 
     result = await db.execute(query.order_by(Asset.name))
     assets = result.scalars().all()
@@ -75,10 +74,10 @@ async def get_assets(
             id=a.id,
             symbol=a.symbol,
             name=a.name,
-            asset_class=a.asset_class.value if a.asset_class else None,
+            asset_class=a.asset_class.value,  # 必須なのでnullチェック不要
             asset_type=a.asset_type.value if a.asset_type else None,
             region=a.region.value if a.region else None,
-            category=a.category.value if a.category else None,
+            sub_category=a.sub_category,
             currency=a.currency,
             exchange=a.exchange,
             isin=a.isin,
@@ -92,7 +91,7 @@ async def create_asset(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # 既存の資産をチェック（同じsymbolとasset_typeの組み合わせ）
+    # 重複チェック
     result = await db.execute(
         select(Asset).where(
             Asset.symbol == asset_data.symbol,
@@ -100,12 +99,9 @@ async def create_asset(
         )
     )
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="同じティッカーと資産タイプの組み合わせが既に存在します")
+        raise HTTPException(status_code=400, detail="Asset already exists")
 
-    # 新しい資産を作成
-    asset_dict = asset_data.dict()
-    asset = Asset(**asset_dict)
-    
+    asset = Asset(**asset_data.dict())
     db.add(asset)
     await db.commit()
     await db.refresh(asset)
@@ -114,14 +110,14 @@ async def create_asset(
         id=asset.id,
         symbol=asset.symbol,
         name=asset.name,
-        asset_class=asset.asset_class.value if asset.asset_class else None,
+        asset_class=asset.asset_class.value,
         asset_type=asset.asset_type.value if asset.asset_type else None,
         region=asset.region.value if asset.region else None,
-        category=asset.category.value if asset.category else None,
+        sub_category=asset.sub_category,
         currency=asset.currency,
         exchange=asset.exchange,
         isin=asset.isin,
-        display_category=asset.display_category
+        display_category=asset.display_category,
     )
 
 @router.get("/enums")
@@ -130,7 +126,6 @@ async def get_asset_enums(current_user: User = Depends(get_current_user)):
         "asset_classes": [{"value": e.value, "label": e.value} for e in AssetClass],
         "asset_types": [{"value": e.value, "label": e.value} for e in AssetType],
         "regions": [{"value": e.value, "label": e.value} for e in Region],
-        "categories": [{"value": e.value, "label": e.value} for e in AssetCategory],
     }
 
 @router.get("/{asset_id}", response_model=AssetResponse)
@@ -143,19 +138,18 @@ async def get_asset(
     asset = result.scalar_one_or_none()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
-    
     return AssetResponse(
         id=asset.id,
         symbol=asset.symbol,
         name=asset.name,
-        asset_class=asset.asset_class.value if asset.asset_class else None,
+        asset_class=asset.asset_class.value,
         asset_type=asset.asset_type.value if asset.asset_type else None,
         region=asset.region.value if asset.region else None,
-        category=asset.category.value if asset.category else None,
+        sub_category=asset.sub_category,
         currency=asset.currency,
         exchange=asset.exchange,
         isin=asset.isin,
-        display_category=asset.display_category
+        display_category=asset.display_category,
     )
 
 @router.put("/{asset_id}", response_model=AssetResponse)
@@ -180,14 +174,14 @@ async def update_asset(
         id=asset.id,
         symbol=asset.symbol,
         name=asset.name,
-        asset_class=asset.asset_class.value if asset.asset_class else None,
+        asset_class=asset.asset_class.value,
         asset_type=asset.asset_type.value if asset.asset_type else None,
         region=asset.region.value if asset.region else None,
-        category=asset.category.value if asset.category else None,
+        sub_category=asset.sub_category,
         currency=asset.currency,
         exchange=asset.exchange,
         isin=asset.isin,
-        display_category=asset.display_category
+        display_category=asset.display_category,
     )
 
 @router.delete("/{asset_id}")
@@ -201,9 +195,8 @@ async def delete_asset(
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    # holdingsがあるかチェック
-    if hasattr(asset, 'holdings') and asset.holdings:
-        raise HTTPException(status_code=400, detail="保有情報がある資産は削除できません")
+    if asset.holdings:
+        raise HTTPException(status_code=400, detail="Cannot delete asset with holdings")
 
     await db.delete(asset)
     await db.commit()
@@ -227,10 +220,10 @@ async def search_assets(
             "id": a.id,
             "symbol": a.symbol,
             "name": a.name,
-            "asset_class": a.asset_class.value if a.asset_class else None,
+            "asset_class": a.asset_class.value,
             "asset_type": a.asset_type.value if a.asset_type else None,
             "region": a.region.value if a.region else None,
-            "category": a.category.value if a.category else None,
+            "sub_category": a.sub_category,
             "currency": a.currency,
             "display_category": a.display_category
         } for a in assets

@@ -9,13 +9,10 @@ export interface User {
   totp_enabled: boolean
 }
 
-// 新しい分類システム
+// 新しい分類システムのみ
 export type AssetClass = 'CashEq' | 'FixedIncome' | 'Equity' | 'RealAsset' | 'Crypto'
 export type AssetType = 'Savings' | 'MMF' | 'Stablecoin' | 'GovBond' | 'CorpBond' | 'BondETF' | 'DirectStock' | 'EquityETF' | 'MutualFund' | 'REIT' | 'Commodity' | 'GoldETF' | 'Crypto'
-export type Region = 'US' | 'JP' | 'EU' | 'EM' | 'GL'
-
-// 旧分類システム（後方互換性）
-export type AssetCategory = 'equity' | 'etf' | 'fund' | 'bond' | 'crypto' | 'cash'
+export type Region = 'US' | 'JP' | 'EU' | 'EM' | 'GL' | 'DM'
 
 // ─────────────────────────────────────────────
 // 資産 (Asset) のレスポンス型
@@ -25,16 +22,13 @@ export interface Asset {
   id: number
   symbol: string
   name: string
-  asset_class?: AssetClass
+  asset_class: AssetClass  // 必須にする
   asset_type?: AssetType
   region?: Region
+  sub_category?: string
   currency: string
   exchange?: string
   isin?: string
-  // 後方互換性のため
-  category?: AssetCategory
-  sub_category?: string
-  // 表示用
   display_category: string
 }
 
@@ -45,9 +39,10 @@ export interface Asset {
 export interface AssetCreate {
   symbol: string
   name: string
-  asset_class: AssetClass
+  asset_class: AssetClass  // 必須
   asset_type?: AssetType
   region?: Region
+  sub_category?: string
   currency: string
   exchange?: string
   isin?: string
@@ -62,6 +57,7 @@ export interface AssetUpdate {
   asset_class?: AssetClass
   asset_type?: AssetType
   region?: Region
+  sub_category?: string
   currency?: string
   exchange?: string
   isin?: string

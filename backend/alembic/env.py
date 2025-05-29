@@ -1,9 +1,7 @@
 from logging.config import fileConfig
 import os
 import sys
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 # プロジェクトルートをパスに追加
@@ -12,17 +10,28 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # ここでSQLAlchemyのBaseとモデルをインポート
 from app.database import Base
 from app.models.asset import Asset
-from app.models.holding import Holding  # 他にもモデルがあれば追加
+from app.models.holding import Holding
 from app.models.price import Price
+from app.models.user import User
+from app.models.btc_trade import BTCTrade
+from app.models.valuation import ValuationSnapshot
+from app.models.cash_balance import CashBalance
 
 # Alembic Config
 config = context.config
+
+# 環境変数からDATABASE_URLを取得
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL:
+    # asyncpgからpsycopg2に変換（Alembic用）
+    database_url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # ログ設定
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# モデルのmetadataを指定（これがないとautogenerateが動かない）
+# モデルのmetadataを指定
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
@@ -50,7 +59,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            compare_type=True  # 型の変更も検知する
+            compare_type=True
         )
 
         with context.begin_transaction():

@@ -5,7 +5,7 @@ import enum
 from app.database import Base
 
 # ───────────────
-# Enum定義
+# 新しい分類システムのEnum定義のみ
 # ───────────────
 
 class AssetClass(str, enum.Enum):
@@ -36,16 +36,8 @@ class Region(str, enum.Enum):
     EU = "EU"
     EM = "EM"
     GL = "GL"
-
-# 後方互換性のための旧Enum（廃止予定）
-class AssetCategory(str, enum.Enum):
-    EQUITY = "equity"
-    ETF = "etf"
-    FUND = "fund"
-    BOND = "bond"
-    CRYPTO = "crypto"
-    CASH = "cash"
-
+    DM = "DM"  # 先進国 (Developed Markets) を追加
+    
 class Asset(Base):
     __tablename__ = "assets"
     
@@ -53,18 +45,14 @@ class Asset(Base):
     symbol = Column(String(20), nullable=False, index=True)
     name = Column(String(200), nullable=False)
     
-    # 新しい分類システム
+    # 新しい分類システムのみ
     asset_class = Column(Enum(AssetClass), nullable=True)  # 大分類
     asset_type = Column(Enum(AssetType), nullable=True)    # 中分類
     region = Column(Enum(Region), nullable=True)           # 地域分類
-    
-    # 旧分類システム（後方互換性のため残す）
-    category = Column(Enum(AssetCategory), nullable=True)
+    sub_category = Column(String(100), nullable=True)      # サブカテゴリ
     
     # 基本情報
     currency = Column(String(3), nullable=False, default="JPY")
-    
-    # Optional fields
     exchange = Column(String(50), nullable=True)
     isin = Column(String(12), nullable=True)
     
@@ -83,10 +71,8 @@ class Asset(Base):
     
     @property
     def display_category(self):
-        """表示用のカテゴリ（新システム優先、旧システムにフォールバック）"""
+        """表示用のカテゴリ（新システムのみ）"""
         if self.asset_class:
             return self.asset_class.value
-        elif self.category:
-            return self.category.value
         else:
             return "Unknown"
