@@ -24,6 +24,7 @@ export type EquityType = 'DirectStock' | 'EquityETF' | 'MutualFund' | 'ADR';
 export type RealEstateType = 'REIT';
 export type CommodityType = 'GoldETF' | 'CommodityETF' | 'PhysicalGold';
 export type CryptoType = 'Crypto' | 'CryptoETF';
+export type OwnerType = "self" | "spouse" | "child" | "special"
 
 export type AssetType =
   | CashEqType
@@ -156,6 +157,9 @@ export interface Holding {
   broker?: string
   notes?: string
   cost_per_unit: number
+  owner_type: OwnerType
+  owner_name?: string
+  account_number?: string
 }
 
 export interface HoldingCreate {

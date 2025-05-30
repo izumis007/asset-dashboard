@@ -34,7 +34,7 @@ class ValuationCalculator:
         
         # Calculate valuations
         total_jpy = 0.0
-        breakdown_by_category = {}
+        breakdown_by_asset_class = {}  # 変数名変更
         breakdown_by_currency = {}
         breakdown_by_account_type = {}
         
@@ -70,8 +70,8 @@ class ValuationCalculator:
             total_jpy += value_jpy
             
             # Update breakdowns
-            category = holding.asset.category.value
-            breakdown_by_category[category] = breakdown_by_category.get(category, 0) + value_jpy
+            asset_class = holding.asset.asset_class.value  # 変更: categoryからasset_classに
+            breakdown_by_asset_class[asset_class] = breakdown_by_asset_class.get(asset_class, 0) + value_jpy
             
             currency = holding.asset.currency
             breakdown_by_currency[currency] = breakdown_by_currency.get(currency, 0) + value_in_currency
@@ -100,7 +100,7 @@ class ValuationCalculator:
                     value_jpy = balance.amount * fx_rate if fx_rate > 0 else 0
                 
                 total_jpy += value_jpy
-                breakdown_by_category["cash"] = breakdown_by_category.get("cash", 0) + value_jpy
+                breakdown_by_asset_class["CashEq"] = breakdown_by_asset_class.get("CashEq", 0) + value_jpy  # 変更: "cash" → "CashEq"
                 breakdown_by_currency[balance.currency] = breakdown_by_currency.get(balance.currency, 0) + balance.amount
         
         # Calculate BTC position
@@ -120,7 +120,7 @@ class ValuationCalculator:
             total_jpy=total_jpy,
             total_usd=total_usd,
             total_btc=total_btc,
-            breakdown_by_category=breakdown_by_category,
+            breakdown_by_asset_class=breakdown_by_asset_class,  # 変更: breakdown_by_categoryからbreakdown_by_asset_classに
             breakdown_by_currency=breakdown_by_currency,
             breakdown_by_account_type=breakdown_by_account_type,
             fx_rates=fx_rates
@@ -143,7 +143,7 @@ class ValuationCalculator:
         
         # If no price in database, try to fetch current price
         if target_date == date.today():
-            if asset.category == "crypto":
+            if asset.asset_class.value == "Crypto":  # 変更: asset.categoryからasset.asset_class.valueに
                 price_data = await self.price_fetcher.fetch_crypto_price(asset.symbol.lower())
             else:
                 price_data = await self.price_fetcher.fetch_price(asset.symbol)

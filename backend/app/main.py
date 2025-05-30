@@ -30,27 +30,31 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Asset Dashboard API...")
 
-# Create FastAPI app
+# Create FastAPI app - redirect_slashesを無効化
 app = FastAPI(
     title="Asset Dashboard API",
     description="Self-hosted asset management dashboard API",
     version="0.2.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False  # ← 追加（これが重要）
 )
 
-# Configure CORS
+# Configure CORS - より明示的に設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://frontend:3000",
+        "http://frontend:3000", 
         "http://localhost",
         "http://127.0.0.1:3000",
-        "*"  # 開発時のみ - 本番環境では具体的なドメインを指定
+        "http://localhost:80",
+        "http://127.0.0.1:80",
+        "*"  # 開発時のみ
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],  # ← HEADとOPTIONSを明示的に追加
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Include routers

@@ -14,7 +14,7 @@ class ValuationSnapshot(Base):
     total_btc = Column(Float, nullable=False)
     
     # Breakdown by asset category
-    breakdown_by_category = Column(JSON, nullable=True)
+    breakdown_by_asset_class = Column(JSON, nullable=True)
     # Example: {"equity": 5000000, "etf": 3000000, "crypto": 2000000}
     
     # Breakdown by currency

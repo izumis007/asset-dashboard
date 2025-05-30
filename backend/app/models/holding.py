@@ -3,8 +3,6 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
-# app/models/holding.py の上部などに追加
-
 
 class OwnerType(str, enum.Enum):
     self_ = "self"
@@ -23,9 +21,14 @@ class Holding(Base):
     id = Column(Integer, primary_key=True, index=True)
     asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
     quantity = Column(Float, nullable=False)
-    cost_total = Column(Float, nullable=False)  # Total cost in asset's currency
+    cost_total = Column(Float, nullable=False)
     acquisition_date = Column(Date, nullable=False)
     account_type = Column(Enum(AccountType), nullable=False)
+    
+    # 名義管理フィールド
+    owner_type = Column(Enum(OwnerType), nullable=False, default=OwnerType.self_)
+    owner_name = Column(String(100), nullable=True)  # ユーザーが自由に入力可能
+    account_number = Column(String(50), nullable=True)  # 口座番号も自由入力
     
     # Optional fields
     broker = Column(String(100), nullable=True)

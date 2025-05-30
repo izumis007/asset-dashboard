@@ -1,4 +1,5 @@
-{$DOMAIN:localhost} {
+# 自動HTTPSを無効化するために :80 を明示
+:80 {
     # Frontend
     handle /* {
         reverse_proxy frontend:3000
@@ -9,7 +10,7 @@
         reverse_proxy backend:8000
     }
     
-    # WebSocket for hot reload in development
+    # WebSocket for hot reload
     handle /_next/webpack-hmr {
         reverse_proxy frontend:3000
     }

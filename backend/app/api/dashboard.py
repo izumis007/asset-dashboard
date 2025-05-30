@@ -20,7 +20,7 @@ class DashboardOverview(BaseModel):
     total_btc: float
     change_24h: float
     change_percentage: float
-    breakdown_by_category: Dict[str, float]
+    breakdown_by_asset_class: Dict[str, float]  # 既に修正済み
     breakdown_by_currency: Dict[str, float]
     breakdown_by_account_type: Dict[str, float]
     history: List[Dict]
@@ -95,7 +95,7 @@ async def get_dashboard_overview(
         total_btc=latest_snapshot.total_btc,
         change_24h=change_24h,
         change_percentage=change_percentage,
-        breakdown_by_category=latest_snapshot.breakdown_by_category or {},
+        breakdown_by_asset_class=latest_snapshot.breakdown_by_asset_class or {},  # 修正: breakdown_by_categoryからbreakdown_by_asset_classに
         breakdown_by_currency=latest_snapshot.breakdown_by_currency or {},
         breakdown_by_account_type=latest_snapshot.breakdown_by_account_type or {},
         history=history
@@ -124,7 +124,7 @@ async def get_valuation_history(
             "total_jpy": snapshot.total_jpy,
             "total_usd": snapshot.total_usd,
             "total_btc": snapshot.total_btc,
-            "breakdown_by_category": snapshot.breakdown_by_category,
+            "breakdown_by_asset_class": snapshot.breakdown_by_asset_class,  # 修正: breakdown_by_categoryからbreakdown_by_asset_classに
             "breakdown_by_currency": snapshot.breakdown_by_currency,
             "breakdown_by_account_type": snapshot.breakdown_by_account_type
         }
@@ -169,9 +169,9 @@ async def get_portfolio_summary(
     
     # Asset allocation percentages
     allocation_percentages = {}
-    if latest_snapshot.breakdown_by_category:
-        for category, value in latest_snapshot.breakdown_by_category.items():
-            allocation_percentages[category] = (value / total_value * 100) if total_value > 0 else 0
+    if latest_snapshot.breakdown_by_asset_class:  # 修正: breakdown_by_categoryからbreakdown_by_asset_classに
+        for asset_class, value in latest_snapshot.breakdown_by_asset_class.items():  # 修正: categoryからasset_classに変数名変更
+            allocation_percentages[asset_class] = (value / total_value * 100) if total_value > 0 else 0
     
     # Currency exposure
     currency_exposure = {}

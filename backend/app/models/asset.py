@@ -49,6 +49,7 @@ class Region(str, enum.Enum):
     EU = "EU"
     EM = "EM"
     GL = "GL"
+    DM = "DM"  # 先進国市場 (Developed Markets) を追加
 
 # 型の依存関係を定義
 ASSET_TYPE_MAPPING = {

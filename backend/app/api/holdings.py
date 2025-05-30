@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models import Holding, Asset, User
 from app.api.auth import get_current_user
 from pydantic import BaseModel
-from app.models.holding import AccountType
+from app.models.holding import AccountType, OwnerType 
 
 router = APIRouter()
 
@@ -22,6 +22,9 @@ class HoldingCreate(BaseModel):
     account_type: AccountType
     broker: str | None = None
     notes: str | None = None
+    owner_type: OwnerType = OwnerType.self_
+    owner_name: str | None = None
+    account_number: str | None = None
 
 class HoldingUpdate(BaseModel):
     quantity: float | None = None
@@ -30,6 +33,9 @@ class HoldingUpdate(BaseModel):
     account_type: AccountType | None = None
     broker: str | None = None
     notes: str | None = None
+    owner_type: OwnerType | None = None
+    owner_name: str | None = None
+    account_number: str | None = None
 
 class HoldingResponse(BaseModel):
     id: int
@@ -41,6 +47,9 @@ class HoldingResponse(BaseModel):
     broker: str | None
     notes: str | None
     cost_per_unit: float
+    owner_type: str
+    owner_name: str | None
+    account_number: str | None
     
     class Config:
         from_attributes = True
@@ -64,8 +73,10 @@ async def get_holdings(
                 "id": h.asset.id,
                 "symbol": h.asset.symbol,
                 "name": h.asset.name,
-                "category": h.asset.category.value,
-                "currency": h.asset.currency
+                "asset_class": h.asset.asset_class.value,  # categoryから変更
+                "asset_type": h.asset.asset_type.value if h.asset.asset_type else None,  # 追加
+                "sub_category": h.asset.sub_category,
+                "currency": h.asset.currency,
             },
             quantity=h.quantity,
             cost_total=h.cost_total,
@@ -73,7 +84,10 @@ async def get_holdings(
             account_type=h.account_type.value,
             broker=h.broker,
             notes=h.notes,
-            cost_per_unit=h.cost_per_unit
+            cost_per_unit=h.cost_per_unit,
+            owner_type=h.owner_type.value,
+            owner_name=h.owner_name,
+            account_number=h.account_number
         )
         for h in holdings
     ]
@@ -108,8 +122,10 @@ async def create_holding(
             "id": holding.asset.id,
             "symbol": holding.asset.symbol,
             "name": holding.asset.name,
-            "category": holding.asset.category.value,
-            "currency": holding.asset.currency
+            "asset_class": holding.asset.asset_class.value,  # categoryから変更
+            "asset_type": holding.asset.asset_type.value if holding.asset.asset_type else None,  # 追加
+            "sub_category": holding.asset.sub_category,
+            "currency": holding.asset.currency,
         },
         quantity=holding.quantity,
         cost_total=holding.cost_total,
@@ -117,7 +133,10 @@ async def create_holding(
         account_type=holding.account_type.value,
         broker=holding.broker,
         notes=holding.notes,
-        cost_per_unit=holding.cost_per_unit
+        cost_per_unit=holding.cost_per_unit,
+        owner_type=holding.owner_type.value,
+        owner_name=holding.owner_name,
+        account_number=holding.account_number
     )
 
 @router.put("/{holding_id}", response_model=HoldingResponse)
@@ -149,8 +168,10 @@ async def update_holding(
             "id": holding.asset.id,
             "symbol": holding.asset.symbol,
             "name": holding.asset.name,
-            "category": holding.asset.category.value,
-            "currency": holding.asset.currency
+            "asset_class": holding.asset.asset_class.value,  # categoryから変更
+            "asset_type": holding.asset.asset_type.value if holding.asset.asset_type else None,  # 追加
+            "sub_category": holding.asset.sub_category,
+            "currency": holding.asset.currency,
         },
         quantity=holding.quantity,
         cost_total=holding.cost_total,
@@ -158,7 +179,10 @@ async def update_holding(
         account_type=holding.account_type.value,
         broker=holding.broker,
         notes=holding.notes,
-        cost_per_unit=holding.cost_per_unit
+        cost_per_unit=holding.cost_per_unit,
+        owner_type=holding.owner_type.value,
+        owner_name=holding.owner_name,
+        account_number=holding.account_number
     )
 
 @router.delete("/{holding_id}")
