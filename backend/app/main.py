@@ -5,6 +5,8 @@ import logging
 
 from app.config import settings
 from app.database import engine, Base
+from app.api import auth, assets, owners, holdings, prices, btc_trades, dashboard
+from app.tasks.scheduled_tasks import setup_periodic_tasks
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +21,9 @@ async def lifespan(app: FastAPI):
     # Create database tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Setup periodic tasks
+    setup_periodic_tasks()
     
     yield
     
@@ -41,55 +46,21 @@ app.add_middleware(
         "http://frontend:3000",
         "http://localhost",
         "http://127.0.0.1:3000",
-        "*"  # 開発時のみ
+        "*"  # 開発時のみ - 本番環境では具体的なドメインを指定
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Try to import and include routers with error handling
-try:
-    from app.api import auth
-    app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-    logger.info("✅ Auth router loaded successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to load auth router: {e}")
-
-try:
-    from app.api import assets
-    app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
-    logger.info("✅ Assets router loaded successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to load assets router: {e}")
-
-try:
-    from app.api import holdings
-    app.include_router(holdings.router, prefix="/api/holdings", tags=["holdings"])
-    logger.info("✅ Holdings router loaded successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to load holdings router: {e}")
-
-try:
-    from app.api import prices
-    app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
-    logger.info("✅ Prices router loaded successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to load prices router: {e}")
-
-try:
-    from app.api import btc_trades
-    app.include_router(btc_trades.router, prefix="/api/btc-trades", tags=["btc-trades"])
-    logger.info("✅ BTC trades router loaded successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to load btc_trades router: {e}")
-
-try:
-    from app.api import dashboard
-    app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
-    logger.info("✅ Dashboard router loaded successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to load dashboard router: {e}")
+# Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
+app.include_router(owners.router, prefix="/api/owners", tags=["owners"])
+app.include_router(holdings.router, prefix="/api/holdings", tags=["holdings"])
+app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
+app.include_router(btc_trades.router, prefix="/api/btc-trades", tags=["btc-trades"])
+app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 
 @app.get("/")
 async def root():
@@ -105,15 +76,3 @@ async def health_check():
         "status": "healthy",
         "service": "asset-dashboard-api"
     }
-
-# Debug endpoint to list all routes
-@app.get("/debug/routes")
-async def debug_routes():
-    routes = []
-    for route in app.routes:
-        if hasattr(route, 'methods') and hasattr(route, 'path'):
-            routes.append({
-                "path": route.path,
-                "methods": list(route.methods)
-            })
-    return routes

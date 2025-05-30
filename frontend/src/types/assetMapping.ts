@@ -1,7 +1,7 @@
 // frontend/src/types/assetMapping.ts
 // 実際のデータベース構造に基づいたマッピング
 
-import { AssetClass, AssetType } from './index'
+import { AssetClass, AssetType } from './index.ts.bak'
 
 export const ASSET_TYPE_BY_CLASS: Record<AssetClass, AssetType[]> = {
   'CASHEQ': [

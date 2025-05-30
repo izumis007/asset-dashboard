@@ -1,0 +1,24 @@
+// tsconfig.json (全体例)
+{
+    "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "Node",
+      "lib": ["DOM", "DOM.Iterable", "ESNext"],
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["src/*"]
+      },
+      "jsx": "preserve",
+      "allowJs": true,
+      "resolveJsonModule": true,
+      "isolatedModules": true,
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "noEmit": true,
+      "skipLibCheck": true,
+      "strict": true
+    },
+    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+    "exclude": ["node_modules"]
+  }

@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, Float, Date, ForeignKey, Enum, DateTime, String
+from sqlalchemy import Column, Float, Date, ForeignKey, Enum, DateTime, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
+import uuid  # 追加
 from app.database import Base
 
 class OwnerType(str, enum.Enum):
@@ -11,24 +13,22 @@ class OwnerType(str, enum.Enum):
     special = "special"
 
 class AccountType(str, enum.Enum):
-    NISA = "NISA"
+    NISA_GROWTH = "NISA_growth"    # NISA成長投資枠
+    NISA_RESERVE = "NISA_reserve"  # NISA積立投資枠
     IDECO = "iDeCo"
-    TAXABLE = "taxable"
+    DC = "DC"                      # 確定拠出年金（企業型など）
+    SPECIFIC = "specific"          # 特定口座（源泉徴収あり/なし）
+    GENERAL = "general"            # 一般口座
 
 class Holding(Base):
     __tablename__ = "holdings"
     
-    id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=False)
     quantity = Column(Float, nullable=False)
-    cost_total = Column(Float, nullable=False)
+    cost_total = Column(Float, nullable=False)  # Total cost in asset's currency
     acquisition_date = Column(Date, nullable=False)
     account_type = Column(Enum(AccountType), nullable=False)
-    
-    # 名義管理フィールド
-    owner_type = Column(Enum(OwnerType), nullable=False, default=OwnerType.self_)
-    owner_name = Column(String(100), nullable=True)  # ユーザーが自由に入力可能
-    account_number = Column(String(50), nullable=True)  # 口座番号も自由入力
     
     # Optional fields
     broker = Column(String(100), nullable=True)
