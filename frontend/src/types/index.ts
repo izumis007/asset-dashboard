@@ -53,8 +53,6 @@ export interface User {
     currency: string
     exchange?: string
     isin?: string
-    // 表示用
-    display_category: string
   }
   
   // ─────────────────────────────────────────────
@@ -98,40 +96,40 @@ export interface User {
   | "general"
   
 
-  export interface HoldingForm {
-    asset_id: string  // UUID string
-    owner_id: string  // UUID string
-    quantity: string
-    cost_total: string
-    acquisition_date: string
-    account_type: AccountType
-    broker: string
-    notes: string
-  }
-  
-  export interface Holding {
-    id: string
-    asset: Asset
-    owner: Owner
-    quantity: number
-    cost_total: number
-    acquisition_date: string
-    account_type: AccountType
-    broker?: string
-    notes?: string
-    cost_per_unit: number
-  }
-  
-  export interface HoldingCreate {
-    asset_id: string
-    owner_id: string
-    quantity: number
-    cost_total: number
-    acquisition_date: string
-    account_type: AccountType
-    broker?: string
-    notes?: string
-  }
+export interface HoldingForm {
+  asset_id: string  // UUID string
+  owner_id: string  // UUID string
+  quantity: number
+  cost_total: number
+  acquisition_date: string
+  account_type: AccountType
+  broker: string
+  notes: string
+}
+
+export interface Holding {
+  id: string
+  asset: Asset
+  owner: Owner
+  quantity: number
+  cost_total: number
+  acquisition_date: string
+  account_type: AccountType
+  broker?: string
+  notes?: string
+  cost_per_unit: number
+}
+
+export interface HoldingCreate {
+  asset_id: string
+  owner_id: string
+  quantity: number
+  cost_total: number
+  acquisition_date: string
+  account_type: AccountType
+  broker?: string
+  notes?: string
+}
   
   export interface Price {
     id: string  // UUID string
