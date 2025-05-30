@@ -8,6 +8,14 @@ interface AllocationPieChartProps {
 }
 
 const COLORS = {
+  // 新しい分類システムに対応
+  CASHEQ: '#82CA9D',        // 現金等価物 - 緑
+  FIXED_INCOME: '#FF8042',  // 債券 - オレンジ
+  EQUITY: '#0088FE',        // 株式 - 青
+  REAL_ASSET: '#FFBB28',    // 実物資産 - 黄色
+  CRYPTO: '#8884D8',        // 暗号資産 - 紫
+  
+  // 旧システムとの互換性（念のため）
   equity: '#0088FE',
   etf: '#00C49F',
   fund: '#FFBB28',
@@ -17,6 +25,14 @@ const COLORS = {
 }
 
 const CATEGORY_LABELS = {
+  // 新しい分類システム
+  CASHEQ: '現金等価物',
+  FIXED_INCOME: '債券',
+  EQUITY: '株式',
+  REAL_ASSET: '実物資産',
+  CRYPTO: '暗号資産',
+  
+  // 旧システムとの互換性（念のため）
   equity: '株式',
   etf: 'ETF',
   fund: '投資信託',
@@ -26,9 +42,20 @@ const CATEGORY_LABELS = {
 }
 
 export function AllocationPieChart({ data }: AllocationPieChartProps) {
-  const total = Object.values(data).reduce((sum, value) => sum + value, 0)
+  // dataがundefinedまたはnullの場合は空オブジェクトを使用
+  const safeData = data || {}
+  const total = Object.values(safeData).reduce((sum, value) => sum + value, 0)
   
-  const chartData = Object.entries(data)
+  // データが空の場合の処理
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">データがありません</p>
+      </div>
+    )
+  }
+  
+  const chartData = Object.entries(safeData)
     .filter(([_, value]) => value > 0)
     .map(([category, value]) => ({
       name: CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] || category,

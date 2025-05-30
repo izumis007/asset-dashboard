@@ -147,13 +147,46 @@ async def create_asset(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error creating asset: {str(e)}")
 
+# backend/app/api/assets.py
+
 @router.get("/enums")
 async def get_asset_enums(current_user: User = Depends(get_current_user)):
-    return {
-        "asset_classes": [{"value": e.value, "label": e.value} for e in AssetClass],
-        "asset_types": [{"value": e.value, "label": e.value} for e in AssetType],
-        "regions": [{"value": e.value, "label": e.value} for e in Region],
-    }
+    """Get asset enum values with Japanese labels"""
+    try:
+        return {
+            "asset_classes": [
+                {"value": "CASHEQ", "label": "現金等価物"},
+                {"value": "FIXED_INCOME", "label": "債券"},
+                {"value": "EQUITY", "label": "株式"},
+                {"value": "REAL_ASSET", "label": "実物資産"},
+                {"value": "CRYPTO", "label": "暗号資産"}
+            ],
+            "asset_types": [
+                {"value": "SAVINGS", "label": "普通預金"},
+                {"value": "MMF", "label": "マネーマーケットファンド"},
+                {"value": "STABLECOIN", "label": "ステーブルコイン"},
+                {"value": "GOV_BOND", "label": "国債"},
+                {"value": "CORP_BOND", "label": "社債"},
+                {"value": "BOND_ETF", "label": "債券ETF"},
+                {"value": "DIRECT_STOCK", "label": "個別株"},
+                {"value": "EQUITY_ETF", "label": "株式ETF"},
+                {"value": "MUTUAL_FUND", "label": "投資信託"},
+                {"value": "REIT", "label": "REIT"},
+                {"value": "COMMODITY", "label": "コモディティ"},
+                {"value": "GOLD_ETF", "label": "金ETF"},
+                {"value": "CRYPTO", "label": "暗号資産"}
+            ],
+            "regions": [
+                {"value": "US", "label": "アメリカ"},
+                {"value": "JP", "label": "日本"},
+                {"value": "EU", "label": "ヨーロッパ"},
+                {"value": "EM", "label": "新興国"},
+                {"value": "DM", "label": "先進国"},
+                {"value": "GL", "label": "グローバル"}
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get enums: {str(e)}")
 
 @router.get("/{asset_id}", response_model=AssetResponse)
 async def get_asset(

@@ -6,60 +6,43 @@ from app.database import Base
 
 # 新しい階層化された資産分類システム
 class AssetClass(str, enum.Enum):
-    CASH_EQUIVALENTS = "CashEquivalents"
-    FIXED_INCOME = "FixedIncome"
-    EQUITY = "Equity"
-    REAL_ESTATE = "RealEstate"
-    COMMODITY = "Commodity"
-    CRYPTO = "Crypto"
+    CASHEQ = "CASHEQ"           # 現金等価物
+    FIXED_INCOME = "FIXED_INCOME" # 債券
+    EQUITY = "EQUITY"           # 株式
+    REAL_ASSET = "REAL_ASSET"   # 実物資産
+    CRYPTO = "CRYPTO"           # 暗号資産
 
 class AssetType(str, enum.Enum):
-    # CashEquivalents
-    SAVINGS = "Savings"
-    MMF = "MMF"
-    STABLECOIN = "Stablecoin"
+    # 現金等価物
+    SAVINGS = "SAVINGS"         # 普通預金
+    MMF = "MMF"                # マネーマーケットファンド
+    STABLECOIN = "STABLECOIN"  # ステーブルコイン
     
-    # FixedIncome
-    GOVERNMENT_BOND = "GovernmentBond"
-    CORPORATE_BOND = "CorporateBond"
-    BOND_ETF = "BondETF"
-    BOND_MUTUAL_FUND = "BondMutualFund"
+    # 債券
+    GOV_BOND = "GOV_BOND"       # 国債
+    CORP_BOND = "CORP_BOND"     # 社債
+    BOND_ETF = "BOND_ETF"       # 債券ETF
     
-    # Equity
-    DIRECT_STOCK = "DirectStock"
-    EQUITY_ETF = "EquityETF"
-    MUTUAL_FUND = "MutualFund"
-    ADR = "ADR"
+    # 株式
+    DIRECT_STOCK = "DIRECT_STOCK"  # 個別株
+    EQUITY_ETF = "EQUITY_ETF"      # 株式ETF
+    MUTUAL_FUND = "MUTUAL_FUND"    # 投資信託
     
-    # RealEstate
-    REIT = "REIT"
+    # 実物資産
+    REIT = "REIT"              # REIT
+    COMMODITY = "COMMODITY"     # コモディティ
+    GOLD_ETF = "GOLD_ETF"       # 金ETF
     
-    # Commodity
-    GOLD_ETF = "GoldETF"
-    COMMODITY_ETF = "CommodityETF"
-    PHYSICAL_GOLD = "PhysicalGold"
-    
-    # Crypto
-    CRYPTO = "Crypto"
-    CRYPTO_ETF = "CryptoETF"
+    # 暗号資産
+    CRYPTO = "CRYPTO"          # 暗号資産
 
 class Region(str, enum.Enum):
-    JP = "JP"
-    US = "US"
-    EU = "EU"
-    EM = "EM"
-    GL = "GL"
-    DM = "DM"  # 先進国市場 (Developed Markets) を追加
-
-# 型の依存関係を定義
-ASSET_TYPE_MAPPING = {
-    AssetClass.CASH_EQUIVALENTS: [AssetType.SAVINGS, AssetType.MMF, AssetType.STABLECOIN],
-    AssetClass.FIXED_INCOME: [AssetType.GOVERNMENT_BOND, AssetType.CORPORATE_BOND, AssetType.BOND_ETF, AssetType.BOND_MUTUAL_FUND],
-    AssetClass.EQUITY: [AssetType.DIRECT_STOCK, AssetType.EQUITY_ETF, AssetType.MUTUAL_FUND, AssetType.ADR],
-    AssetClass.REAL_ESTATE: [AssetType.REIT],
-    AssetClass.COMMODITY: [AssetType.GOLD_ETF, AssetType.COMMODITY_ETF, AssetType.PHYSICAL_GOLD],
-    AssetClass.CRYPTO: [AssetType.CRYPTO, AssetType.CRYPTO_ETF]
-}
+    US = "US"   # アメリカ
+    JP = "JP"   # 日本
+    EU = "EU"   # ヨーロッパ
+    EM = "EM"   # 新興国
+    DM = "DM"   # 先進国
+    GL = "GL"   # グローバル
 
 class Asset(Base):
     __tablename__ = "assets"
