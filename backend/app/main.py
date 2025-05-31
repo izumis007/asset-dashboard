@@ -37,13 +37,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://frontend:3000",
-        "http://localhost",
-        "http://127.0.0.1:3000",
-        "*"  # 開発時のみ - 本番環境では具体的なドメインを指定
-    ],
+    allow_origins=["http://localhost:3000"],  # フロントエンドのURL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -4,8 +4,8 @@ from sqlalchemy import select
 from typing import List, Optional
 import logging
 import traceback
-import uuid
-
+from uuid import UUID
+from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import Asset, User
 from app.api.auth import get_current_user
@@ -214,25 +214,20 @@ async def get_asset(
     )
 
 @router.delete("/{asset_id}")
-async def delete_asset(
-    asset_id: str,  # UUID string
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    try:
-        asset_uuid = uuid.UUID(asset_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid asset ID format")
-    
-    result = await db.execute(select(Asset).where(Asset.id == asset_uuid))
+async def delete_asset(asset_id: UUID, session: AsyncSession = Depends(get_db)):
+    result = await session.execute(
+        select(Asset)
+        .options(selectinload(Asset.holdings))  # ⬅️ これがポイント
+        .where(Asset.id == asset_id)
+    )
     asset = result.scalar_one_or_none()
-    if not asset:
+    if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    # holdingsリレーションシップをチェック
-    if hasattr(asset, 'holdings') and asset.holdings:
+    # 任意: Holdings がある場合は削除を拒否
+    if asset.holdings:
         raise HTTPException(status_code=400, detail="Cannot delete asset with holdings")
 
-    await db.delete(asset)
-    await db.commit()
-    return {"message": "Asset deleted successfully"}
+    await session.delete(asset)
+    await session.commit()
+    return {"message": "Asset deleted"}
