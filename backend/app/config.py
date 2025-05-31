@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"
 
 settings = Settings()
 # デバッグ用のprint文を削除！

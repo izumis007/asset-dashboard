@@ -9,7 +9,7 @@ export interface User {
     totp_enabled: boolean
   }
   
-  // 新しい分類システム（AssetCategory完全除去）
+  // 新しい分類システム（旧AssetCategory完全除去）
   export type AssetClass = 'CashEq' | 'FixedIncome' | 'Equity' | 'RealAsset' | 'Crypto'
   export type AssetType = 'Savings' | 'MMF' | 'Stablecoin' | 'GovBond' | 'CorpBond' | 'BondETF' | 'DirectStock' | 'EquityETF' | 'MutualFund' | 'REIT' | 'Commodity' | 'GoldETF' | 'Crypto'
   export type Region = 'US' | 'JP' | 'EU' | 'DM' | 'EM' | 'GL'
@@ -92,11 +92,11 @@ export interface User {
   | "specific"
   | "general"
   
-// ─────────────────────────────────────────────
-// 保有資産管理（名義人管理システム対応）
-// ─────────────────────────────────────────────
-
-export interface HoldingForm {
+  // ─────────────────────────────────────────────
+  // 保有資産管理（名義人管理システム対応）
+  // ─────────────────────────────────────────────
+  
+  export interface HoldingForm {
     asset_id: string  // UUID string
     owner_id: string  // UUID string - 名義人管理
     quantity: string  // フォーム用なのでstring
@@ -141,7 +141,6 @@ export interface HoldingForm {
     broker?: string
     notes?: string
   }
-
   
   export interface Price {
     id: string  // UUID string

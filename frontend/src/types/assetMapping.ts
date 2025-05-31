@@ -2,32 +2,8 @@
 // 新しい分類システムのマッピング（旧categoryシステム完全除去）
 
 import { AssetClass, AssetType } from './index'
+import { ASSET_TYPE_BY_CLASS } from '@/constants/assetMapping'
 
-export const ASSET_TYPE_BY_CLASS: Record<AssetClass, AssetType[]> = {
-  'CashEq': [
-    'Savings',      // 普通預金
-    'MMF',          // マネーマーケットファンド
-    'Stablecoin'    // ステーブルコイン
-  ],
-  'FixedIncome': [
-    'GovBond',     // 国債
-    'CorpBond',    // 社債
-    'BondETF'      // 債券ETF
-  ],
-  'Equity': [
-    'DirectStock', // 個別株
-    'EquityETF',   // 株式ETF
-    'MutualFund',  // 投資信託
-    'REIT'         // REIT（株式カテゴリに移動）
-  ],
-  'RealAsset': [
-    'Commodity',   // コモディティ
-    'GoldETF'      // 金ETF
-  ],
-  'Crypto': [
-    'Crypto'       // 暗号資産
-  ]
-}
 
 // AssetClassに基づいてAssetTypeの選択肢を取得する関数
 export function getAssetTypesByClass(assetClass: AssetClass): AssetType[] {

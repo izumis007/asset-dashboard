@@ -14,49 +14,76 @@ from app.services.valuation_calculator import ValuationCalculator
 
 logger = logging.getLogger(__name__)
 
-# Create Celery app
-celery_app = Celery(
-    'tasks',
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL
-)
-
-# Configure Celery
-celery_app.conf.update(
-    timezone=settings.TIMEZONE,
-    enable_utc=True,
-    beat_schedule={
-        'fetch-daily-prices': {
-            'task': 'app.tasks.scheduled_tasks.fetch_daily_prices',
-            'schedule': crontab(
-                hour=settings.PRICE_FETCH_HOUR,
-                minute=settings.PRICE_FETCH_MINUTE
-            ),
-        },
-        'calculate-daily-valuation': {
-            'task': 'app.tasks.scheduled_tasks.calculate_daily_valuation',
-            'schedule': crontab(
-                hour=settings.PRICE_FETCH_HOUR,
-                minute=settings.PRICE_FETCH_MINUTE + 10  # 10 minutes after price fetch
-            ),
-        },
-        'scrape-money-forward': {
-            'task': 'app.tasks.scheduled_tasks.scrape_money_forward',
-            'schedule': crontab(
-                hour=settings.PRICE_FETCH_HOUR,
-                minute=settings.PRICE_FETCH_MINUTE + 20  # 20 minutes after price fetch
-            ),
-        },
-    }
-)
+# Create Celery app with error handling
+try:
+    celery_app = Celery(
+        'tasks',
+        broker=settings.REDIS_URL,
+        backend=settings.REDIS_URL
+    )
+    
+    # Configure Celery
+    celery_app.conf.update(
+        timezone=settings.TIMEZONE,
+        enable_utc=True,
+        beat_schedule={
+            'fetch-daily-prices': {
+                'task': 'app.tasks.scheduled_tasks.fetch_daily_prices',
+                'schedule': crontab(
+                    hour=settings.PRICE_FETCH_HOUR,
+                    minute=settings.PRICE_FETCH_MINUTE
+                ),
+            },
+            'calculate-daily-valuation': {
+                'task': 'app.tasks.scheduled_tasks.calculate_daily_valuation',
+                'schedule': crontab(
+                    hour=settings.PRICE_FETCH_HOUR,
+                    minute=settings.PRICE_FETCH_MINUTE + 10  # 10 minutes after price fetch
+                ),
+            },
+            'scrape-money-forward': {
+                'task': 'app.tasks.scheduled_tasks.scrape_money_forward',
+                'schedule': crontab(
+                    hour=settings.PRICE_FETCH_HOUR,
+                    minute=settings.PRICE_FETCH_MINUTE + 20  # 20 minutes after price fetch
+                ),
+            },
+        }
+    )
+    
+    CELERY_AVAILABLE = True
+    logger.info("Celery configured successfully")
+    
+except Exception as e:
+    logger.warning(f"Celery configuration failed: {e}")
+    # 🔧 修正: Celeryが利用できない場合のダミーアプリ
+    class DummyCeleryApp:
+        def task(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+        
+        def delay(self, *args, **kwargs):
+            class DummyTask:
+                id = None
+            return DummyTask()
+    
+    celery_app = DummyCeleryApp()
+    CELERY_AVAILABLE = False
 
 def setup_periodic_tasks():
     """Called on app startup to ensure beat schedule is registered"""
-    logger.info("Periodic tasks configured")
+    if CELERY_AVAILABLE:
+        logger.info("Periodic tasks configured")
+    else:
+        logger.warning("Celery not available - periodic tasks disabled")
 
 @celery_app.task
 def fetch_daily_prices():
     """Fetch latest prices for all assets"""
+    if not CELERY_AVAILABLE:
+        logger.warning("Celery not available - skipping price fetch")
+        return
     asyncio.run(_fetch_daily_prices())
 
 async def _fetch_daily_prices():
@@ -82,8 +109,14 @@ async def _fetch_daily_prices():
                     if existing.scalar_one_or_none():
                         continue
                     
+                    # 🔧 修正: symbolがNoneの場合をスキップ
+                    if not asset.symbol:
+                        logger.warning(f"Skipping asset {asset.name} - no symbol")
+                        continue
+                    
                     # Fetch price based on asset type
-                    if asset.category == "crypto":
+                    # 🔧 修正: asset_class は Enum なので .value でアクセス
+                    if asset.asset_class and asset.asset_class.value == "Crypto":
                         price_data = await price_fetcher.fetch_crypto_price(asset.symbol.lower())
                     else:
                         price_data = await price_fetcher.fetch_price(asset.symbol)
@@ -115,6 +148,9 @@ async def _fetch_daily_prices():
 @celery_app.task
 def calculate_daily_valuation():
     """Calculate and store daily valuation snapshot"""
+    if not CELERY_AVAILABLE:
+        logger.warning("Celery not available - skipping valuation calculation")
+        return
     asyncio.run(_calculate_daily_valuation())
 
 async def _calculate_daily_valuation():
@@ -134,6 +170,9 @@ async def _calculate_daily_valuation():
 @celery_app.task
 def scrape_money_forward():
     """Run Money Forward scraper"""
+    if not CELERY_AVAILABLE:
+        logger.warning("Celery not available - skipping Money Forward scrape")
+        return
     asyncio.run(_scrape_money_forward())
 
 async def _scrape_money_forward():
@@ -175,14 +214,23 @@ async def _scrape_money_forward():
 @celery_app.task
 def trigger_price_fetch():
     """Manually trigger price fetch"""
+    if not CELERY_AVAILABLE:
+        logger.warning("Celery not available - cannot trigger price fetch")
+        return {"status": "error", "message": "Celery not available"}
     return fetch_daily_prices()
 
 @celery_app.task
 def trigger_valuation_calculation():
     """Manually trigger valuation calculation"""
+    if not CELERY_AVAILABLE:
+        logger.warning("Celery not available - cannot trigger valuation calculation")
+        return {"status": "error", "message": "Celery not available"}
     return calculate_daily_valuation()
 
 @celery_app.task
 def trigger_money_forward_scrape():
     """Manually trigger Money Forward scrape"""
+    if not CELERY_AVAILABLE:
+        logger.warning("Celery not available - cannot trigger Money Forward scrape")
+        return {"status": "error", "message": "Celery not available"}
     return scrape_money_forward()

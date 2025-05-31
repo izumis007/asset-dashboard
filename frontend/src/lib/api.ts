@@ -52,16 +52,23 @@ interface AuthState {
   setToken: (token: string | null) => void
   setUser: (user: User | null) => void
   logout: () => void
+  // 🔧 修正: isAuthenticated関数を追加
+  isAuthenticated: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       setToken: (token) => set({ token }),
       setUser: (user) => set({ user }),
       logout: () => set({ token: null, user: null }),
+      // 🔧 修正: isAuthenticated関数の実装
+      isAuthenticated: () => {
+        const { token } = get()
+        return !!token && token.length > 0
+      },
     }),
     {
       name: 'auth-storage',

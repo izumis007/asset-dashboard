@@ -53,7 +53,18 @@ async def get_dashboard_overview(
             db.add(latest_snapshot)
             await db.commit()
         else:
-            raise HTTPException(status_code=404, detail="No valuation data available")
+            # 🔧 修正: データがない場合の適切なレスポンス
+            return DashboardOverview(
+                total_jpy=0.0,
+                total_usd=0.0,
+                total_btc=0.0,
+                change_24h=0.0,
+                change_percentage=0.0,
+                breakdown_by_category={},
+                breakdown_by_currency={},
+                breakdown_by_account_type={},
+                history=[]
+            )
     
     # Get previous day snapshot for comparison
     yesterday = latest_snapshot.date - timedelta(days=1)
@@ -138,13 +149,20 @@ async def refresh_prices(
 ):
     """Manually trigger price refresh"""
     
-    # Trigger price fetch task
-    task = trigger_price_fetch.delay()
-    
-    return RefreshResponse(
-        message="Price refresh initiated",
-        task_id=task.id if hasattr(task, 'id') else None
-    )
+    # 🔧 修正: Celeryタスクが利用できない場合のハンドリング
+    try:
+        # Trigger price fetch task
+        task = trigger_price_fetch.delay()
+        return RefreshResponse(
+            message="Price refresh initiated",
+            task_id=task.id if hasattr(task, 'id') else None
+        )
+    except Exception as e:
+        # Celeryが動いていない場合のフォールバック
+        return RefreshResponse(
+            message="Price refresh not available - Celery worker not running",
+            task_id=None
+        )
 
 @router.get("/summary")
 async def get_portfolio_summary(
@@ -162,7 +180,17 @@ async def get_portfolio_summary(
     latest_snapshot = result.scalar_one_or_none()
     
     if not latest_snapshot:
-        raise HTTPException(status_code=404, detail="No valuation data available")
+        # 🔧 修正: データがない場合の適切なレスポンス
+        return {
+            "date": date.today().isoformat(),
+            "total_value_jpy": 0.0,
+            "total_value_usd": 0.0,
+            "bitcoin_holdings": 0.0,
+            "allocation_percentages": {},
+            "currency_exposure": {},
+            "account_type_breakdown": {},
+            "fx_rates": {}
+        }
     
     # Calculate additional metrics
     total_value = latest_snapshot.total_jpy

@@ -7,7 +7,7 @@ interface AllocationPieChartProps {
   data: Record<string, number>
 }
 
-// 新しい分類システムのみ（旧CASHEQ等完全除去）
+// 新しい分類システムのみ（旧システム完全除去）
 const COLORS = {
   CashEq: '#82CA9D',        // 現金等価物 - 緑
   FixedIncome: '#FF8042',   // 債券 - オレンジ

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PlusIcon, TrashIcon } from 'lucide-react'
+import { ASSET_TYPE_BY_CLASS } from '@/constants/assetMapping'
 
 // ✅ 1. すべてのEnum表記をCamelCaseに統一
 const AssetClassEnum = {
@@ -43,7 +44,7 @@ const RegionEnum = {
   GL: 'GL' as Region,
 } as const;
 
-// display_category用のラベルマッピング（UI表示専用、将来的にi18n対応）
+// UI表示用のラベルマッピング（将来的にi18n対応）
 const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
   CashEq: '現金等価物',
   FixedIncome: '債券',
@@ -86,14 +87,6 @@ const CURRENCY_OPTIONS = [
   { value: 'ETH', label: 'ETH' },
 ] as const;
 
-// ✅ 3. ASSET_TYPE_BY_CLASSのキーもCamelCaseに修正
-export const ASSET_TYPE_BY_CLASS: Record<AssetClass, AssetType[]> = {
-  CashEq: ['Savings', 'MMF', 'Stablecoin'],
-  FixedIncome: ['GovBond', 'CorpBond', 'BondETF'],
-  Equity: ['DirectStock', 'EquityETF', 'MutualFund', 'REIT'],
-  RealAsset: ['Commodity', 'GoldETF'],
-  Crypto: ['Crypto'],
-} as const;
 
 // フォーム状態の型定義
 interface FormState {
@@ -513,7 +506,7 @@ export default function AssetsPage() {
                         </td>
                         <td className="h-12 px-4 align-middle">
                           <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20">
-                            {/* ✅ display_categoryの目的: UI表示用ラベル（将来的にi18n対応） */}
+                            {/* UI表示用ラベル（i18n対応予定） */}
                             {asset.asset_class ? ASSET_CLASS_LABELS[asset.asset_class] : '-'}
                           </span>
                         </td>

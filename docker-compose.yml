@@ -39,7 +39,7 @@ services:
       LOG_LEVEL: DEBUG 
     volumes:
       - ./backend:/app
-      # .envマウントを削除
+      - .env:/app/.env 
     ports:
       - "8000:8000"
     depends_on:

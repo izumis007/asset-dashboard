@@ -63,14 +63,15 @@ class ValuationCalculator:
             # Update totals
             total_jpy += value_jpy
             
-            # Update breakdowns - データベースカラム名と一致
-            asset_class = holding.asset.asset_class.value
+            # 🔧 修正: asset_class は Enum オブジェクトなので .value でアクセス
+            asset_class = holding.asset.asset_class.value if holding.asset.asset_class else "Unknown"
             breakdown_by_category[asset_class] = breakdown_by_category.get(asset_class, 0) + value_jpy
             
             currency = holding.asset.currency
             breakdown_by_currency[currency] = breakdown_by_currency.get(currency, 0) + value_in_currency
             
-            account_type = holding.account_type.value
+            # 🔧 修正: account_type も Enum オブジェクトなので .value でアクセス
+            account_type = holding.account_type.value if holding.account_type else "Unknown"
             breakdown_by_account_type[account_type] = breakdown_by_account_type.get(account_type, 0) + value_jpy
         
         # Calculate BTC holdings
@@ -109,8 +110,14 @@ class ValuationCalculator:
         if price_record:
             return price_record.price
         
+        # 🔧 修正: symbolがNoneの場合のハンドリング追加
+        if not asset.symbol:
+            logger.warning(f"Asset {asset.name} has no symbol, cannot fetch price")
+            return None
+        
         # If no price in database, try to fetch
-        if asset.asset_class.value == "Crypto":
+        # 🔧 修正: asset_class は Enum オブジェクトなので .value でアクセス
+        if asset.asset_class and asset.asset_class.value == "Crypto":
             price_data = await self.price_fetcher.fetch_crypto_price(asset.symbol.lower())
         else:
             price_data = await self.price_fetcher.fetch_price(asset.symbol)
