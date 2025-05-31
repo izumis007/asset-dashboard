@@ -7,14 +7,21 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCurrency(
   amount: number,
-  currency: 'JPY' | 'USD' | 'EUR' | 'GBP' = 'JPY'
+  currency: 'JPY' | 'USD' | 'EUR' | 'GBP' | 'BTC' | 'ETH' = 'JPY'
 ): string {
+  // 🔧 修正: より多くの通貨に対応
   const formatter = new Intl.NumberFormat('ja-JP', {
     style: 'currency',
-    currency: currency,
-    minimumFractionDigits: currency === 'JPY' ? 0 : 2,
-    maximumFractionDigits: currency === 'JPY' ? 0 : 2,
+    currency: currency === 'BTC' || currency === 'ETH' ? 'JPY' : currency,
+    minimumFractionDigits: currency === 'JPY' ? 0 : currency === 'BTC' || currency === 'ETH' ? 8 : 2,
+    maximumFractionDigits: currency === 'JPY' ? 0 : currency === 'BTC' || currency === 'ETH' ? 8 : 2,
   })
+  if (currency === 'BTC') {
+    return `₿${amount.toFixed(8)}`
+  }
+  if (currency === 'ETH') {
+    return `Ξ${amount.toFixed(8)}`
+  }
   
   return formatter.format(amount)
 }

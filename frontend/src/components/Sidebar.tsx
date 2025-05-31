@@ -11,7 +11,7 @@ export default function Sidebar() {
     { href: '/dashboard', label: 'ダッシュボード', icon: Home },
     { href: '/holdings', label: '保有資産', icon: PieChart },
     { href: '/btc-trades', label: 'BTC取引', icon: Bitcoin },
-    { href: '/settings', label: '設定', icon: Settings }, // 追加
+    { href: '/settings', label: '設定', icon: Settings },
   ]
 
   return (

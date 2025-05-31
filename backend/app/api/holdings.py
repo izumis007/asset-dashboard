@@ -35,6 +35,7 @@ class HoldingUpdate(BaseModel):
     broker: str | None = None
     notes: str | None = None
 
+# 既存のコード内で、HoldingResponseが正しく cost_per_unit を含んでいることを確認
 class HoldingResponse(BaseModel):
     id: str  # UUID string
     asset: dict
@@ -45,7 +46,7 @@ class HoldingResponse(BaseModel):
     account_type: str
     broker: str | None
     notes: str | None
-    cost_per_unit: float
+    cost_per_unit: float  # 🔧 確認: このフィールドが含まれている
     
     class Config:
         from_attributes = True

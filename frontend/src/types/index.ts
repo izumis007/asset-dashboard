@@ -113,11 +113,11 @@ export interface User {
     owner: Owner  // 名義人情報（リレーションシップ）
     quantity: number
     cost_total: number
-    acquisition_date: string
+    acquisition_date: string  // YYYY-MM-DD形式
     account_type: AccountType
     broker?: string
     notes?: string
-    cost_per_unit: number
+    cost_per_unit: number  // 🔧 確認: この計算プロパティが必要
   }
   
   export interface HoldingCreate {
