@@ -2,16 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Layers, PieChart, Bitcoin } from 'lucide-react'
+import { Home, Layers, PieChart, Bitcoin, Settings } from 'lucide-react'
 
 export default function Sidebar() {
   const pathname = usePathname()
 
   const links = [
     { href: '/dashboard', label: 'ダッシュボード', icon: Home },
-    { href: '/assets', label: '資産', icon: Layers },
     { href: '/holdings', label: '保有資産', icon: PieChart },
     { href: '/btc-trades', label: 'BTC取引', icon: Bitcoin },
+    { href: '/settings', label: '設定', icon: Settings }, // 追加
   ]
 
   return (
@@ -23,7 +23,7 @@ export default function Sidebar() {
             key={href}
             href={href}
             className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-              ${pathname === href
+              ${pathname === href || pathname.startsWith(href + '/')
                 ? 'bg-accent text-accent-foreground'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
           >
