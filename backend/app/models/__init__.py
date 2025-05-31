@@ -1,6 +1,7 @@
 from app.models.user import User
-from app.models.asset import Asset, AssetClass, AssetType, Region  # AssetCategoryを削除
-from app.models.holding import Holding, AccountType, OwnerType
+from app.models.asset import Asset, AssetClass, AssetType, Region
+from app.models.owner import Owner, OwnerType  # 新規追加
+from app.models.holding import Holding, AccountType
 from app.models.price import Price
 from app.models.btc_trade import BTCTrade
 from app.models.valuation import ValuationSnapshot
@@ -12,9 +13,10 @@ __all__ = [
     "AssetClass", 
     "AssetType",
     "Region",
+    "Owner",
+    "OwnerType",
     "Holding",
     "AccountType",
-    "OwnerType",
     "Price",
     "BTCTrade",
     "ValuationSnapshot",

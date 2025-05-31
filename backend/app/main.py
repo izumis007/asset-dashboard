@@ -56,7 +56,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(assets.router, prefix="/api/assets", tags=["assets"])
-app.include_router(owners.router, prefix="/api/owners", tags=["owners"])
+app.include_router(owners.router, prefix="/api/owners", tags=["owners"])  # 追加
 app.include_router(holdings.router, prefix="/api/holdings", tags=["holdings"])
 app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
 app.include_router(btc_trades.router, prefix="/api/btc-trades", tags=["btc-trades"])

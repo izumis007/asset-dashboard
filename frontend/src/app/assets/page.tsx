@@ -123,10 +123,10 @@ const INITIAL_FORM_STATE: FormState = {
 
 // 送信データ構築のユーティリティ関数
 const buildAssetPayload = (formState: FormState): AssetCreate => {
-  const payload: AssetCreate = {
-    name: formState.name.trim(),
-    asset_class: formState.assetClass, // CamelCase値をそのまま送信
-    currency: formState.currency,
+    const payload: AssetCreate = {
+      name: formState.name.trim(),
+      asset_class: formState.assetClass,
+      currency: formState.currency
   };
 
   // オプション項目は値がある場合のみ追加

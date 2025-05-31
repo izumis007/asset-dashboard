@@ -169,22 +169,22 @@ export const assetsAPI = {
 // 名義人 API
 // ─────────────────────────────
 export const ownersAPI = {
-  list: async () => {
+  list: async (): Promise<Owner[]> => {
     const response = await api.get<Owner[]>('/api/owners')
     return response.data
   },
 
-  create: async (data: OwnerCreate) => {
+  create: async (data: OwnerCreate): Promise<Owner> => {
     const response = await api.post<Owner>('/api/owners', data)
     return response.data
   },
 
-  update: async (id: string, data: OwnerUpdate) => {
+  update: async (id: string, data: OwnerUpdate): Promise<Owner> => {
     const response = await api.put<Owner>(`/api/owners/${id}`, data)
     return response.data
   },
 
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<void> => {
     await api.delete(`/api/owners/${id}`)
   },
 
@@ -269,4 +269,6 @@ export const dashboardAPI = {
 }
 
 console.log("BASE API URL:", API_URL)
+
+
 

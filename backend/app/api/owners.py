@@ -5,8 +5,8 @@ from typing import List
 import uuid
 
 from app.database import get_db
-from app.models import Owner, User
-from app.models.owner import OwnerType
+from app.models import User
+from app.models.owner import Owner, OwnerType  # 正しいインポートパス
 from app.api.auth import get_current_user
 from pydantic import BaseModel
 
@@ -22,7 +22,7 @@ class OwnerUpdate(BaseModel):
     owner_type: OwnerType | None = None
 
 class OwnerResponse(BaseModel):
-    id: uuid.UUID
+    id: str  # UUID string
     name: str
     owner_type: str
     created_at: str
@@ -45,7 +45,7 @@ async def get_owners(
     
     return [
         OwnerResponse(
-            id=owner.id,
+            id=str(owner.id),
             name=owner.name,
             owner_type=owner.owner_type.value,
             created_at=owner.created_at.isoformat(),
@@ -75,7 +75,7 @@ async def create_owner(
     await db.refresh(owner)
     
     return OwnerResponse(
-        id=owner.id,
+        id=str(owner.id),
         name=owner.name,
         owner_type=owner.owner_type.value,
         created_at=owner.created_at.isoformat(),
@@ -84,18 +84,23 @@ async def create_owner(
 
 @router.get("/{owner_id}", response_model=OwnerResponse)
 async def get_owner(
-    owner_id: uuid.UUID,
+    owner_id: str,  # UUID string
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific owner"""
-    result = await db.execute(select(Owner).where(Owner.id == owner_id))
+    try:
+        owner_uuid = uuid.UUID(owner_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid owner ID format")
+    
+    result = await db.execute(select(Owner).where(Owner.id == owner_uuid))
     owner = result.scalar_one_or_none()
     if not owner:
         raise HTTPException(status_code=404, detail="Owner not found")
     
     return OwnerResponse(
-        id=owner.id,
+        id=str(owner.id),
         name=owner.name,
         owner_type=owner.owner_type.value,
         created_at=owner.created_at.isoformat(),
@@ -104,13 +109,18 @@ async def get_owner(
 
 @router.put("/{owner_id}", response_model=OwnerResponse)
 async def update_owner(
-    owner_id: uuid.UUID,
+    owner_id: str,  # UUID string
     owner_data: OwnerUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Update an owner"""
-    result = await db.execute(select(Owner).where(Owner.id == owner_id))
+    try:
+        owner_uuid = uuid.UUID(owner_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid owner ID format")
+    
+    result = await db.execute(select(Owner).where(Owner.id == owner_uuid))
     owner = result.scalar_one_or_none()
     if not owner:
         raise HTTPException(status_code=404, detail="Owner not found")
@@ -131,7 +141,7 @@ async def update_owner(
     await db.refresh(owner)
     
     return OwnerResponse(
-        id=owner.id,
+        id=str(owner.id),
         name=owner.name,
         owner_type=owner.owner_type.value,
         created_at=owner.created_at.isoformat(),
@@ -140,12 +150,17 @@ async def update_owner(
 
 @router.delete("/{owner_id}")
 async def delete_owner(
-    owner_id: uuid.UUID,
+    owner_id: str,  # UUID string
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Delete an owner"""
-    result = await db.execute(select(Owner).where(Owner.id == owner_id))
+    try:
+        owner_uuid = uuid.UUID(owner_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid owner ID format")
+    
+    result = await db.execute(select(Owner).where(Owner.id == owner_uuid))
     owner = result.scalar_one_or_none()
     if not owner:
         raise HTTPException(status_code=404, detail="Owner not found")

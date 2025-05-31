@@ -1,8 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { holdingsAPI, assetsAPI } from "@/lib/api"
-import type { Holding, Asset, Owner, HoldingForm, AccountType } from "@/types"
+import { holdingsAPI, assetsAPI, ownersAPI } from "@/lib/api"
+import type { Holding, Asset, Owner, HoldingCreate, AccountType } from "@/types"
+
+interface HoldingForm {
+  asset_id: string // UUID string
+  owner_id: string // UUID string
+  quantity: string
+  cost_total: string
+  acquisition_date: string
+  account_type: AccountType
+  broker: string
+  notes: string
+}
 
 export default function HoldingsPage() {
   const [holdings, setHoldings] = useState<Holding[]>([])
@@ -10,11 +21,11 @@ export default function HoldingsPage() {
   const [owners, setOwners] = useState<Owner[]>([])
   const [form, setForm] = useState<HoldingForm>({
     asset_id: '', // UUID string
-    owner_id: '', // UUID string（名義人）
+    owner_id: '', // UUID string
     quantity: '',
     cost_total: '',
     acquisition_date: '',
-    account_type: 'specific', // デフォルトを特定口座に変更
+    account_type: 'specific',
     broker: '',
     notes: ''
   })
@@ -44,16 +55,18 @@ export default function HoldingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-        await holdingsAPI.create({
-            asset_id: form.asset_id, // UUID stringをそのまま使用
-            owner_id: form.owner_id, // UUID string（名義人）
-            quantity: Number(form.quantity),
-            cost_total: Number(form.cost_total),
-            acquisition_date: form.acquisition_date,
-            account_type: form.account_type,
-            broker: form.broker || undefined,
-            notes: form.notes || undefined,
-          })
+      const holdingData: HoldingCreate = {
+        asset_id: form.asset_id,
+        owner_id: form.owner_id,
+        quantity: Number(form.quantity),
+        cost_total: Number(form.cost_total),
+        acquisition_date: form.acquisition_date,
+        account_type: form.account_type,
+        broker: form.broker || undefined,
+        notes: form.notes || undefined,
+      }
+      
+      await holdingsAPI.create(holdingData)
       const updated = await holdingsAPI.list()
       setHoldings(updated)
       
@@ -64,7 +77,7 @@ export default function HoldingsPage() {
         quantity: '',
         cost_total: '',
         acquisition_date: '',
-        account_type: 'specific', // デフォルトを特定口座に
+        account_type: 'specific',
         broker: '',
         notes: ''
       })

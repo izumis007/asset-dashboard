@@ -99,8 +99,8 @@ export interface User {
 export interface HoldingForm {
   asset_id: string  // UUID string
   owner_id: string  // UUID string
-  quantity: number
-  cost_total: number
+  quantity: string  // フォーム用なのでstring
+  cost_total: string  // フォーム用なのでstring
   acquisition_date: string
   account_type: AccountType
   broker: string

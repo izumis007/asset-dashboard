@@ -29,7 +29,7 @@ def upgrade() -> None:
     op.execute("CREATE TYPE region AS ENUM ('US', 'JP', 'EU', 'DM', 'EM', 'GL')")
     op.execute("CREATE TYPE account_type AS ENUM ('NISA_growth', 'NISA_reserve', 'iDeCo', 'DC', 'specific', 'general')")
     op.execute("CREATE TYPE owner_type AS ENUM ('self', 'spouse', 'joint', 'child', 'other')")
-    op.execute("CREATE TYPE trade_type AS ENUM ('buy', 'sell', 'transfer')")  # 🆕 追加
+    op.execute("CREATE TYPE trade_type AS ENUM ('buy', 'sell', 'transfer')")
 
     # Create users table (unchanged, using fastapi-users structure)
     op.create_table('users',
@@ -69,6 +69,7 @@ def upgrade() -> None:
         sa.Column('asset_class', sa.Enum('CashEq', 'FixedIncome', 'Equity', 'RealAsset', 'Crypto', name='asset_class'), nullable=False),  # 必須分類
         sa.Column('asset_type', sa.Enum('Savings', 'MMF', 'Stablecoin', 'GovBond', 'CorpBond', 'BondETF', 'DirectStock', 'EquityETF', 'MutualFund', 'REIT', 'Commodity', 'GoldETF', 'Crypto', name='asset_type'), nullable=True),  # 詳細分類は任意
         sa.Column('region', sa.Enum('US', 'JP', 'EU', 'DM', 'EM', 'GL', name='region'), nullable=True),  # 地域は任意
+        sa.Column('sub_category', sa.String(length=100), nullable=True),  # サブカテゴリ追加
         sa.Column('currency', sa.String(length=3), nullable=False, server_default='JPY'),
         sa.Column('exchange', sa.String(length=50), nullable=True),
         sa.Column('isin', sa.String(length=12), nullable=True),

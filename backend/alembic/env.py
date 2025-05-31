@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # ここでSQLAlchemyのBaseとモデルをインポート
 from app.database import Base
 from app.models.asset import Asset
+from app.models.owner import Owner  # 追加
 from app.models.holding import Holding
 from app.models.price import Price
 from app.models.user import User

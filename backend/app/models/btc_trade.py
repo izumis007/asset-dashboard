@@ -1,11 +1,19 @@
-from sqlalchemy import Column, Integer, Float, DateTime, String, Text
+from sqlalchemy import Column, Float, DateTime, String, Text, Enum
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+import enum
+import uuid
 from app.database import Base
+
+class TradeType(str, enum.Enum):
+    buy = "buy"
+    sell = "sell"
+    transfer = "transfer"
 
 class BTCTrade(Base):
     __tablename__ = "btc_trades"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     txid = Column(String(100), nullable=True, unique=True)  # Transaction ID if available
     amount_btc = Column(Float, nullable=False)  # Positive for buy, negative for sell
     counter_value_jpy = Column(Float, nullable=False)  # JPY amount (always positive)
@@ -16,12 +24,12 @@ class BTCTrade(Base):
     
     # Optional fields
     exchange = Column(String(100), nullable=True)
-    trade_type = Column(String(10), nullable=True)  # "buy" or "sell"
+    trade_type = Column(Enum(TradeType), nullable=True)  # "buy", "sell", "transfer"
     notes = Column(Text, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     @property
     def is_buy(self):
