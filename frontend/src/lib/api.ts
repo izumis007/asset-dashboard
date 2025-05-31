@@ -141,6 +141,7 @@ export const authAPI = {
 // ─────────────────────────────
 // 資産 API
 // ─────────────────────────────
+
 export const assetsAPI = {
   list: async () => {
     const response = await api.get<Asset[]>('/api/assets')
@@ -157,7 +158,8 @@ export const assetsAPI = {
     return response.data
   },
 
-  update: async (id: string, data: Partial<Omit<Asset, 'id'>>) => {
+  // 🔧 修正: update メソッドを追加
+  update: async (id: string, data: Partial<AssetCreate>) => {
     const response = await api.put<Asset>(`/api/assets/${id}`, data)
     return response.data
   },

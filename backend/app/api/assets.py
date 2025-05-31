@@ -11,6 +11,7 @@ from app.models import Asset, User
 from app.api.auth import get_current_user
 from pydantic import BaseModel
 from app.models.asset import AssetClass, AssetType, Region
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -240,3 +241,70 @@ async def delete_asset(
     await db.delete(asset)
     await db.commit()
     return {"message": "Asset deleted"}
+
+
+# backend/app/api/assets.py の編集機能を追加する部分
+
+@router.put("/{asset_id}", response_model=AssetResponse)
+async def update_asset(
+    asset_id: str,  # UUID string
+    asset_data: AssetUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing asset"""
+    try:
+        # UUID validation
+        try:
+            asset_uuid = UUID(asset_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid asset ID format")
+        
+        # Get existing asset
+        result = await db.execute(select(Asset).where(Asset.id == asset_uuid))
+        asset = result.scalar_one_or_none()
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        
+        # Check for duplicate symbol+asset_type if these fields are being updated
+        update_data = asset_data.dict(exclude_unset=True)
+        if 'symbol' in update_data or 'asset_type' in update_data:
+            new_symbol = update_data.get('symbol', asset.symbol)
+            new_asset_type = update_data.get('asset_type', asset.asset_type)
+            
+            if new_symbol and new_asset_type:
+                result = await db.execute(
+                    select(Asset).where(
+                        Asset.symbol == new_symbol,
+                        Asset.asset_type == new_asset_type,
+                        Asset.id != asset_uuid  # Exclude current asset
+                    )
+                )
+                if result.scalar_one_or_none():
+                    raise HTTPException(status_code=400, detail="Asset with this symbol and type already exists")
+        
+        # Update fields
+        for field, value in update_data.items():
+            setattr(asset, field, value)
+        
+        await db.commit()
+        await db.refresh(asset)
+        
+        return AssetResponse(
+            id=str(asset.id),
+            symbol=asset.symbol,
+            name=asset.name,
+            asset_class=asset.asset_class.value,
+            asset_type=asset.asset_type.value if asset.asset_type else None,
+            region=asset.region.value if asset.region else None,
+            sub_category=asset.sub_category,
+            currency=asset.currency,
+            exchange=asset.exchange,
+            isin=asset.isin,
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating asset: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating asset: {str(e)}")
