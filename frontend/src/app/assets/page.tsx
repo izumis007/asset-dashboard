@@ -92,7 +92,7 @@ const CURRENCY_OPTIONS = [
 interface FormState {
   symbol: string;
   name: string;
-  assetClass: AssetClass;
+  assetClass: AssetClass | undefined; 
   assetType: AssetType | undefined;
   region: Region | undefined;
   subCategory: string;
@@ -105,7 +105,7 @@ interface FormState {
 const INITIAL_FORM_STATE: FormState = {
   symbol: '',
   name: '',
-  assetClass: 'Equity', // CamelCase統一
+  assetClass: undefined,  // CamelCase統一
   assetType: undefined,
   region: undefined,
   subCategory: '',
@@ -135,14 +135,15 @@ const buildAssetPayload = (formState: FormState): AssetCreate => {
 
 // フォームバリデーション関数
 const validateForm = (formState: FormState): string | null => {
-  if (!formState.name.trim()) return '名称は必須です';
-  if (formState.symbol.length > 20) return 'ティッカーは20文字以内で入力してください';
-  if (formState.name.length > 200) return '名称は200文字以内で入力してください';
-  if (formState.subCategory.length > 100) return 'サブカテゴリは100文字以内で入力してください';
-  if (formState.exchange.length > 50) return '取引所は50文字以内で入力してください';
-  if (formState.isin.length > 12) return 'ISINコードは12文字以内で入力してください';
-  return null;
-};
+    if (!formState.name.trim()) return '名称は必須です';
+    if (!formState.assetClass) return '資産クラスは必須です';  // ← 追加！
+    if (formState.symbol.length > 20) return 'ティッカーは20文字以内で入力してください';
+    if (formState.name.length > 200) return '名称は200文字以内で入力してください';
+    if (formState.subCategory.length > 100) return 'サブカテゴリは100文字以内で入力してください';
+    if (formState.exchange.length > 50) return '取引所は50文字以内で入力してください';
+    if (formState.isin.length > 12) return 'ISINコードは12文字以内で入力してください';
+    return null;
+  };
 
 // スピナーコンポーネント
 const Spinner = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -255,16 +256,6 @@ export default function AssetsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-8">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">資産管理</h1>
-          <p className="text-muted-foreground mt-2">
-            株式、ETF、投資信託、暗号資産などの資産を登録・管理します
-          </p>
-        </div>
-      </div>
-
       {/* 登録フォーム */}
       <Card>
         <CardHeader>
@@ -323,21 +314,26 @@ export default function AssetsPage() {
 
               {/* ✅ 4. 資産クラス - フォームのselectのvalue, onChangeもCamelCaseに対応 */}
               <div className="space-y-2">
-                <Label htmlFor="assetClass">資産クラス</Label>
-                <select
-                  id="assetClass"
-                  value={formState.assetClass}
-                  onChange={(e) => handleAssetClassChange(e.target.value as AssetClass)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="資産クラス選択"
-                >
-                  <option value="CashEq">現金等価物</option>
-                  <option value="FixedIncome">債券</option>
-                  <option value="Equity">株式</option>
-                  <option value="RealAsset">実物資産</option>
-                  <option value="Crypto">暗号資産</option>
-                </select>
-              </div>
+  <Label htmlFor="assetClass">資産クラス *</Label>
+  <select
+    id="assetClass"
+    value={formState.assetClass ?? ''}
+    onChange={(e) =>
+      updateFormField('assetClass', e.target.value ? (e.target.value as AssetClass) : undefined)
+    }
+    required
+    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    aria-label="資産クラス選択（必須）"
+  >
+    <option value="">選択してください</option>
+    <option value="CashEq">現金等価物</option>
+    <option value="FixedIncome">債券</option>
+    <option value="Equity">株式</option>
+    <option value="RealAsset">実物資産</option>
+    <option value="Crypto">暗号資産</option>
+  </select>
+</div>
+
 
               {/* 資産タイプ（型安全な undefined 処理） */}
               <div className="space-y-2">
