@@ -7,38 +7,21 @@ interface AllocationPieChartProps {
   data: Record<string, number>
 }
 
+// 新しい分類システムのみ（旧CASHEQ等完全除去）
 const COLORS = {
-  // 新しい分類システムに対応
-  CASHEQ: '#82CA9D',        // 現金等価物 - 緑
-  FIXED_INCOME: '#FF8042',  // 債券 - オレンジ
-  EQUITY: '#0088FE',        // 株式 - 青
-  REAL_ASSET: '#FFBB28',    // 実物資産 - 黄色
-  CRYPTO: '#8884D8',        // 暗号資産 - 紫
-  
-  // 旧システムとの互換性（念のため）
-  equity: '#0088FE',
-  etf: '#00C49F',
-  fund: '#FFBB28',
-  bond: '#FF8042',
-  crypto: '#8884D8',
-  cash: '#82CA9D',
+  CashEq: '#82CA9D',        // 現金等価物 - 緑
+  FixedIncome: '#FF8042',   // 債券 - オレンジ
+  Equity: '#0088FE',        // 株式 - 青
+  RealAsset: '#FFBB28',     // 実物資産 - 黄色
+  Crypto: '#8884D8',        // 暗号資産 - 紫
 }
 
 const CATEGORY_LABELS = {
-  // 新しい分類システム
-  CASHEQ: '現金等価物',
-  FIXED_INCOME: '債券',
-  EQUITY: '株式',
-  REAL_ASSET: '実物資産',
-  CRYPTO: '暗号資産',
-  
-  // 旧システムとの互換性（念のため）
-  equity: '株式',
-  etf: 'ETF',
-  fund: '投資信託',
-  bond: '債券',
-  crypto: '暗号資産',
-  cash: '現金',
+  CashEq: '現金等価物',
+  FixedIncome: '債券',
+  Equity: '株式',
+  RealAsset: '実物資産',
+  Crypto: '暗号資産',
 }
 
 export function AllocationPieChart({ data }: AllocationPieChartProps) {
@@ -123,6 +106,7 @@ export function AllocationPieChart({ data }: AllocationPieChartProps) {
           dataKey="value"
         >
           {chartData.map((entry, index) => {
+            // 新しい分類システムのカテゴリから元のキーを逆引き
             const category = Object.keys(CATEGORY_LABELS).find(
               key => CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS] === entry.name
             )

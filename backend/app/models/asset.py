@@ -76,8 +76,3 @@ class Asset(Base):
     __table_args__ = (
         UniqueConstraint('symbol', 'asset_type', name='_symbol_asset_type_uc'),
     )
-    
-    @property
-    def display_category(self):
-        """表示用のカテゴリ"""
-        return self.asset_class.value if self.asset_class else "Unknown"

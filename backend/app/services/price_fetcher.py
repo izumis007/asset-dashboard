@@ -15,7 +15,7 @@ class PriceFetcher:
         self.alpha_vantage_key = settings.ALPHA_VANTAGE_API_KEY
         self.timeout = httpx.Timeout(30.0)
     
-    async def fetch_price(self, symbol: str, asset_type: str = "equity") -> Optional[Dict]:
+    async def fetch_price(self, symbol: str, asset_class: str = "Equity") -> Optional[Dict]:
         """Fetch price with fallback through multiple sources"""
         
         # Try sources in order of preference

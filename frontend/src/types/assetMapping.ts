@@ -1,31 +1,31 @@
 // frontend/src/types/assetMapping.ts
-// 実際のデータベース構造に基づいたマッピング
+// 新しい分類システムのマッピング（旧categoryシステム完全除去）
 
-import { AssetClass, AssetType } from './index.ts.bak'
+import { AssetClass, AssetType } from './index'
 
 export const ASSET_TYPE_BY_CLASS: Record<AssetClass, AssetType[]> = {
-  'CASHEQ': [
-    'SAVINGS',      // 普通預金
+  'CashEq': [
+    'Savings',      // 普通預金
     'MMF',          // マネーマーケットファンド
-    'STABLECOIN'    // ステーブルコイン
+    'Stablecoin'    // ステーブルコイン
   ],
-  'FIXED_INCOME': [
-    'GOV_BOND',     // 国債
-    'CORP_BOND',    // 社債
-    'BOND_ETF'      // 債券ETF
+  'FixedIncome': [
+    'GovBond',     // 国債
+    'CorpBond',    // 社債
+    'BondETF'      // 債券ETF
   ],
-  'EQUITY': [
-    'DIRECT_STOCK', // 個別株
-    'EQUITY_ETF',   // 株式ETF
-    'MUTUAL_FUND'   // 投資信託
+  'Equity': [
+    'DirectStock', // 個別株
+    'EquityETF',   // 株式ETF
+    'MutualFund',  // 投資信託
+    'REIT'         // REIT（株式カテゴリに移動）
   ],
-  'REAL_ASSET': [
-    'REIT',         // REIT
-    'COMMODITY',    // コモディティ
-    'GOLD_ETF'      // 金ETF
+  'RealAsset': [
+    'Commodity',   // コモディティ
+    'GoldETF'      // 金ETF
   ],
-  'CRYPTO': [
-    'CRYPTO'        // 暗号資産
+  'Crypto': [
+    'Crypto'       // 暗号資産
   ]
 }
 
@@ -37,4 +37,29 @@ export function getAssetTypesByClass(assetClass: AssetClass): AssetType[] {
 // AssetTypeがAssetClassに適合するかチェックする関数
 export function isValidAssetTypeForClass(assetClass: AssetClass, assetType: AssetType): boolean {
   return ASSET_TYPE_BY_CLASS[assetClass]?.includes(assetType) || false
+}
+
+// 日本語ラベルマッピング
+export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  CashEq: '現金等価物',
+  FixedIncome: '債券',
+  Equity: '株式',
+  RealAsset: '実物資産',
+  Crypto: '暗号資産',
+}
+
+export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  Savings: '普通預金',
+  MMF: 'マネーマーケットファンド',
+  Stablecoin: 'ステーブルコイン',
+  GovBond: '国債',
+  CorpBond: '社債',
+  BondETF: '債券ETF',
+  DirectStock: '個別株',
+  EquityETF: '株式ETF',
+  MutualFund: '投資信託',
+  REIT: 'REIT',
+  Commodity: 'コモディティ',
+  GoldETF: '金ETF',
+  Crypto: '暗号資産',
 }

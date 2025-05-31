@@ -9,13 +9,10 @@ export interface User {
     totp_enabled: boolean
   }
   
-  // 新しい分類システム
+  // 新しい分類システム（AssetCategory完全除去）
   export type AssetClass = 'CashEq' | 'FixedIncome' | 'Equity' | 'RealAsset' | 'Crypto'
   export type AssetType = 'Savings' | 'MMF' | 'Stablecoin' | 'GovBond' | 'CorpBond' | 'BondETF' | 'DirectStock' | 'EquityETF' | 'MutualFund' | 'REIT' | 'Commodity' | 'GoldETF' | 'Crypto'
-  export type Region = 'US' | 'JP' | 'EU' | 'DM' | 'EM' | 'GL'  // DM (先進国) を追加
-  
-  // 旧分類システム（後方互換性）
-  export type AssetCategory = 'equity' | 'etf' | 'fund' | 'bond' | 'crypto' | 'cash'
+  export type Region = 'US' | 'JP' | 'EU' | 'DM' | 'EM' | 'GL'
   
   // 名義管理
   export type OwnerType = 'self' | 'spouse' | 'joint' | 'child' | 'other'
@@ -46,7 +43,7 @@ export interface User {
     id: string  // UUID string
     symbol?: string  // ティッカーは任意
     name: string
-    asset_class?: AssetClass
+    asset_class: AssetClass  // 必須
     asset_type?: AssetType
     region?: Region
     sub_category?: string
@@ -62,7 +59,7 @@ export interface User {
   export interface AssetCreate {
     symbol?: string  // ティッカーは任意
     name: string
-    asset_class: AssetClass
+    asset_class: AssetClass  // 必須
     asset_type?: AssetType
     region?: Region
     sub_category?: string
