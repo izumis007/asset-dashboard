@@ -95,41 +95,56 @@ export interface User {
   | "specific"
   | "general"
   
+// ─────────────────────────────────────────────
+// 保有資産管理（名義人管理システム対応）
+// ─────────────────────────────────────────────
 
 export interface HoldingForm {
-  asset_id: string  // UUID string
-  owner_id: string  // UUID string
-  quantity: string  // フォーム用なのでstring
-  cost_total: string  // フォーム用なのでstring
-  acquisition_date: string
-  account_type: AccountType
-  broker: string
-  notes: string
-}
+    asset_id: string  // UUID string
+    owner_id: string  // UUID string - 名義人管理
+    quantity: string  // フォーム用なのでstring
+    cost_total: string  // フォーム用なのでstring
+    acquisition_date: string
+    account_type: AccountType
+    broker: string
+    notes: string
+  }
+  
+  export interface Holding {
+    id: string  // UUID string
+    asset: Asset
+    owner: Owner  // 名義人情報（リレーションシップ）
+    quantity: number
+    cost_total: number
+    acquisition_date: string
+    account_type: AccountType
+    broker?: string
+    notes?: string
+    cost_per_unit: number
+  }
+  
+  export interface HoldingCreate {
+    asset_id: string  // UUID string
+    owner_id: string  // UUID string - 名義人管理
+    quantity: number
+    cost_total: number
+    acquisition_date: string
+    account_type: AccountType
+    broker?: string
+    notes?: string
+  }
+  
+  export interface HoldingUpdate {
+    asset_id?: string
+    owner_id?: string
+    quantity?: number
+    cost_total?: number
+    acquisition_date?: string
+    account_type?: AccountType
+    broker?: string
+    notes?: string
+  }
 
-export interface Holding {
-  id: string
-  asset: Asset
-  owner: Owner
-  quantity: number
-  cost_total: number
-  acquisition_date: string
-  account_type: AccountType
-  broker?: string
-  notes?: string
-  cost_per_unit: number
-}
-
-export interface HoldingCreate {
-  asset_id: string
-  owner_id: string
-  quantity: number
-  cost_total: number
-  acquisition_date: string
-  account_type: AccountType
-  broker?: string
-  notes?: string
-}
   
   export interface Price {
     id: string  // UUID string

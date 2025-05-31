@@ -19,7 +19,7 @@ class Holding(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=False)
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("owners.id"), nullable=False)  # 名義人
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("owners.id"), nullable=False)  # 正しい名義人管理
     quantity = Column(Float, nullable=False)
     cost_total = Column(Float, nullable=False)  # Total cost in asset's currency
     acquisition_date = Column(Date, nullable=False)
@@ -33,7 +33,7 @@ class Holding(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Relationships
+    # Relationships - データベーススキーマと完全一致
     asset = relationship("Asset", back_populates="holdings")
     owner = relationship("Owner", back_populates="holdings")
     
