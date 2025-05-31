@@ -7,102 +7,255 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { PlusIcon, EditIcon, TrashIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon } from 'lucide-react'
+
+// ✅ 1. すべてのEnum表記をCamelCaseに統一
+const AssetClassEnum = {
+  CashEq: 'CashEq' as AssetClass,
+  FixedIncome: 'FixedIncome' as AssetClass,
+  Equity: 'Equity' as AssetClass,
+  RealAsset: 'RealAsset' as AssetClass,
+  Crypto: 'Crypto' as AssetClass,
+} as const;
+
+const AssetTypeEnum = {
+  Savings: 'Savings' as AssetType,
+  MMF: 'MMF' as AssetType,
+  Stablecoin: 'Stablecoin' as AssetType,
+  GovBond: 'GovBond' as AssetType,
+  CorpBond: 'CorpBond' as AssetType,
+  BondETF: 'BondETF' as AssetType,
+  DirectStock: 'DirectStock' as AssetType,
+  EquityETF: 'EquityETF' as AssetType,
+  MutualFund: 'MutualFund' as AssetType,
+  REIT: 'REIT' as AssetType,
+  Commodity: 'Commodity' as AssetType,
+  GoldETF: 'GoldETF' as AssetType,
+  Crypto: 'Crypto' as AssetType,
+} as const;
+
+const RegionEnum = {
+  US: 'US' as Region,
+  JP: 'JP' as Region,
+  EU: 'EU' as Region,
+  DM: 'DM' as Region,
+  EM: 'EM' as Region,
+  GL: 'GL' as Region,
+} as const;
+
+// display_category用のラベルマッピング（UI表示専用、将来的にi18n対応）
+const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  CashEq: '現金等価物',
+  FixedIncome: '債券',
+  Equity: '株式',
+  RealAsset: '実物資産',
+  Crypto: '暗号資産',
+} as const;
+
+const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  Savings: '普通預金',
+  MMF: 'MMF',
+  Stablecoin: 'ステーブルコイン',
+  GovBond: '国債',
+  CorpBond: '社債',
+  BondETF: '債券ETF',
+  DirectStock: '個別株',
+  EquityETF: '株式ETF',
+  MutualFund: '投資信託',
+  REIT: 'REIT',
+  Commodity: 'コモディティ',
+  GoldETF: '金ETF',
+  Crypto: '暗号資産',
+} as const;
+
+const REGION_LABELS: Record<Region, string> = {
+  US: 'アメリカ',
+  JP: '日本',
+  EU: 'ヨーロッパ',
+  DM: '先進国',
+  EM: '新興国',
+  GL: 'グローバル',
+} as const;
+
+const CURRENCY_OPTIONS = [
+  { value: 'JPY', label: 'JPY' },
+  { value: 'USD', label: 'USD' },
+  { value: 'EUR', label: 'EUR' },
+  { value: 'GBP', label: 'GBP' },
+  { value: 'BTC', label: 'BTC' },
+  { value: 'ETH', label: 'ETH' },
+] as const;
+
+// ✅ 3. ASSET_TYPE_BY_CLASSのキーもCamelCaseに修正
+export const ASSET_TYPE_BY_CLASS: Record<AssetClass, AssetType[]> = {
+  CashEq: ['Savings', 'MMF', 'Stablecoin'],
+  FixedIncome: ['GovBond', 'CorpBond', 'BondETF'],
+  Equity: ['DirectStock', 'EquityETF', 'MutualFund', 'REIT'],
+  RealAsset: ['Commodity', 'GoldETF'],
+  Crypto: ['Crypto'],
+} as const;
+
+// フォーム状態の型定義
+interface FormState {
+  symbol: string;
+  name: string;
+  assetClass: AssetClass;
+  assetType: AssetType | undefined;
+  region: Region | undefined;
+  subCategory: string;
+  currency: string;
+  exchange: string;
+  isin: string;
+}
+
+// ✅ 2. useState の初期値を正しい型に修正
+const INITIAL_FORM_STATE: FormState = {
+  symbol: '',
+  name: '',
+  assetClass: 'Equity', // CamelCase統一
+  assetType: undefined,
+  region: undefined,
+  subCategory: '',
+  currency: 'JPY',
+  exchange: '',
+  isin: '',
+};
+
+// 送信データ構築のユーティリティ関数
+const buildAssetPayload = (formState: FormState): AssetCreate => {
+  const payload: AssetCreate = {
+    name: formState.name.trim(),
+    asset_class: formState.assetClass, // CamelCase値をそのまま送信
+    currency: formState.currency,
+  };
+
+  // オプション項目は値がある場合のみ追加
+  if (formState.symbol.trim()) payload.symbol = formState.symbol.trim();
+  if (formState.assetType) payload.asset_type = formState.assetType;
+  if (formState.region) payload.region = formState.region;
+  if (formState.subCategory.trim()) payload.sub_category = formState.subCategory.trim();
+  if (formState.exchange.trim()) payload.exchange = formState.exchange.trim();
+  if (formState.isin.trim()) payload.isin = formState.isin.trim();
+
+  return payload;
+};
+
+// フォームバリデーション関数
+const validateForm = (formState: FormState): string | null => {
+  if (!formState.name.trim()) return '名称は必須です';
+  if (formState.symbol.length > 20) return 'ティッカーは20文字以内で入力してください';
+  if (formState.name.length > 200) return '名称は200文字以内で入力してください';
+  if (formState.subCategory.length > 100) return 'サブカテゴリは100文字以内で入力してください';
+  if (formState.exchange.length > 50) return '取引所は50文字以内で入力してください';
+  if (formState.isin.length > 12) return 'ISINコードは12文字以内で入力してください';
+  return null;
+};
+
+// スピナーコンポーネント
+const Spinner = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+  const sizeClasses = {
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12'
+  };
+  
+  return (
+    <div className={`animate-spin rounded-full border-b-2 border-primary ${sizeClasses[size]}`} />
+  );
+};
 
 export default function AssetsPage() {
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
 
-  // フォーム状態
-  const [symbol, setSymbol] = useState('')
-  const [name, setName] = useState('')
-  const [assetClass, setAssetClass] = useState<AssetClass>('EQUITY')
-  const [assetType, setAssetType] = useState<AssetType | undefined>(undefined)
-  const [region, setRegion] = useState<Region | undefined>(undefined)
-  const [subCategory, setSubCategory] = useState<string>('')
-  const [currency, setCurrency] = useState('JPY')
-  const [exchange, setExchange] = useState('')
-  const [isin, setIsin] = useState('')
+  // フォーム値更新のヘルパー関数（型安全）
+  const updateFormField = <K extends keyof FormState>(
+    field: K,
+    value: FormState[K]
+  ) => {
+    setFormState(prev => ({ ...prev, [field]: value }));
+  };
+
+  // 資産クラス変更時の処理（CamelCase対応）
+  const handleAssetClassChange = (assetClass: AssetClass) => {
+    updateFormField('assetClass', assetClass);
+    // 選択された資産クラスに対応しない資産タイプをリセット
+    if (formState.assetType && !ASSET_TYPE_BY_CLASS[assetClass].includes(formState.assetType)) {
+      updateFormField('assetType', undefined);
+    }
+  };
+
+  // フォームリセット
+  const resetForm = () => {
+    setFormState(INITIAL_FORM_STATE);
+  };
 
   useEffect(() => {
     const fetchAssets = async () => {
       try {
-        setIsLoading(true)
-        const res = await assetsAPI.list()
-        setAssets(res)
+        setIsLoading(true);
+        const res = await assetsAPI.list();
+        setAssets(res);
       } catch (error) {
-        console.error('Failed to fetch assets:', error)
+        console.error('Failed to fetch assets:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    fetchAssets()
-  }, [])
-
-  const resetForm = () => {
-    setSymbol('')
-    setName('')
-    setAssetClass('EQUITY')
-    setAssetType(undefined)
-    setRegion(undefined)
-    setSubCategory('')
-    setCurrency('JPY')
-    setExchange('')
-    setIsin('')
-  }
+    };
+    fetchAssets();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     
-    if (!symbol.trim() || !name.trim()) {
-      alert('ティッカーと名称は必須です')
-      return
+    // バリデーション
+    const validationError = validateForm(formState);
+    if (validationError) {
+      alert(validationError);
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     
-    const newAsset: AssetCreate = {
-      symbol: symbol.trim(),
-      name: name.trim(),
-      asset_class: assetClass,
-      ...(assetType && { asset_type: assetType }),
-      ...(region && { region }),
-      ...(subCategory && subCategory.trim() && { sub_category: subCategory.trim() }),
-      currency,
-      ...(exchange && exchange.trim() && { exchange: exchange.trim() }),
-      ...(isin && isin.trim() && { isin: isin.trim() }),
-    }
-  
     try {
-      await assetsAPI.create(newAsset)
-      const res = await assetsAPI.list()
-      setAssets(res)
-      resetForm()
+      const newAsset = buildAssetPayload(formState);
+      await assetsAPI.create(newAsset);
+      const res = await assetsAPI.list();
+      setAssets(res);
+      resetForm();
     } catch (error) {
-      console.error("Asset creation failed:", error)
-      alert('資産の登録に失敗しました')
+      console.error("Asset creation failed:", error);
+      alert('資産の登録に失敗しました');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('この資産を削除しますか？')) return
+  // 楽観的UI更新による削除
+  const handleDelete = async (id: string) => {
+    if (!confirm('この資産を削除しますか？')) return;
+    
+    const originalAssets = assets;
+    setAssets(assets.filter(asset => asset.id !== id));
     
     try {
-      await assetsAPI.delete(id)
-      setAssets(assets.filter(asset => asset.id !== id))
+      await assetsAPI.delete(id);
     } catch (error) {
-      console.error('Failed to delete asset:', error)
-      alert('削除に失敗しました')
+      setAssets(originalAssets);
+      console.error('Failed to delete asset:', error);
+      alert('削除に失敗しました');
     }
-  }
+  };
+
+  // 選択可能な資産タイプ（CamelCaseキーで取得）
+  const availableAssetTypes = ASSET_TYPE_BY_CLASS[formState.assetClass] || [];
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Spinner size="lg" />
       </div>
     )
   }
@@ -132,14 +285,14 @@ export default function AssetsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* ティッカー */}
               <div className="space-y-2">
-                <Label htmlFor="symbol">ティッカー *</Label>
+                <Label htmlFor="symbol">ティッカー</Label>
                 <Input
                   id="symbol"
                   type="text"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value)}
+                  value={formState.symbol}
+                  onChange={(e) => updateFormField('symbol', e.target.value)}
                   placeholder="例: BTC, TSLA, 1306"
-                  required
+                  aria-label="ティッカーシンボル（任意）"
                 />
               </div>
 
@@ -149,10 +302,11 @@ export default function AssetsPage() {
                 <Input
                   id="name"
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={formState.name}
+                  onChange={(e) => updateFormField('name', e.target.value)}
                   placeholder="例: ビットコイン, テスラ"
                   required
+                  aria-label="資産名称（必須）"
                 />
               </div>
 
@@ -161,79 +315,89 @@ export default function AssetsPage() {
                 <Label htmlFor="currency">通貨</Label>
                 <select
                   id="currency"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
+                  value={formState.currency}
+                  onChange={(e) => updateFormField('currency', e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="通貨選択"
                 >
-                  <option value="JPY">JPY</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="BTC">BTC</option>
-                  <option value="ETH">ETH</option>
+                  {CURRENCY_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* 資産クラス */}
+              {/* ✅ 4. 資産クラス - フォームのselectのvalue, onChangeもCamelCaseに対応 */}
               <div className="space-y-2">
                 <Label htmlFor="assetClass">資産クラス</Label>
                 <select
                   id="assetClass"
-                  value={assetClass}
-                  onChange={(e) => setAssetClass(e.target.value as AssetClass)}
+                  value={formState.assetClass}
+                  onChange={(e) => handleAssetClassChange(e.target.value as AssetClass)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="資産クラス選択"
                 >
-                  <option value="CASHEQ">現金等価物</option>
-                  <option value="FIXED_INCOME">債券</option>
-                  <option value="EQUITY">株式</option>
-                  <option value="REAL_ASSET">実物資産</option>
-                  <option value="CRYPTO">暗号資産</option>
+                  <option value="CashEq">現金等価物</option>
+                  <option value="FixedIncome">債券</option>
+                  <option value="Equity">株式</option>
+                  <option value="RealAsset">実物資産</option>
+                  <option value="Crypto">暗号資産</option>
                 </select>
               </div>
 
-              {/* 資産タイプ */}
+              {/* 資産タイプ（型安全な undefined 処理） */}
               <div className="space-y-2">
                 <Label htmlFor="assetType">資産タイプ</Label>
                 <select
                   id="assetType"
-                  value={assetType || ''}
-                  onChange={(e) => setAssetType(e.target.value as AssetType || undefined)}
+                  value={formState.assetType ?? ''}
+                  onChange={(e) => updateFormField('assetType', (e.target.value as AssetType) || undefined)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="資産タイプ選択（任意）"
                 >
                   <option value="">選択してください</option>
-                  <option value="SAVINGS">普通預金</option>
-                  <option value="MMF">MMF</option>
-                  <option value="STABLECOIN">ステーブルコイン</option>
-                  <option value="GOV_BOND">国債</option>
-                  <option value="CORP_BOND">社債</option>
-                  <option value="BOND_ETF">債券ETF</option>
-                  <option value="DIRECT_STOCK">個別株</option>
-                  <option value="EQUITY_ETF">株式ETF</option>
-                  <option value="MUTUAL_FUND">投資信託</option>
-                  <option value="REIT">REIT</option>
-                  <option value="COMMODITY">コモディティ</option>
-                  <option value="GOLD_ETF">金ETF</option>
-                  <option value="CRYPTO">暗号資産</option>
+                  {/* CamelCase値を使用 */}
+                  {availableAssetTypes.map(type => (
+                    <option key={type} value={type}>
+                      {ASSET_TYPE_LABELS[type]}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* 地域 */}
+              {/* 地域（型安全な undefined 処理） */}
               <div className="space-y-2">
                 <Label htmlFor="region">地域</Label>
                 <select
                   id="region"
-                  value={region || ''}
-                  onChange={(e) => setRegion(e.target.value as Region || undefined)}
+                  value={formState.region ?? ''}
+                  onChange={(e) => updateFormField('region', (e.target.value as Region) || undefined)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="地域選択（任意）"
                 >
                   <option value="">選択してください</option>
+                  {/* CamelCase値を使用 */}
                   <option value="US">アメリカ</option>
                   <option value="JP">日本</option>
                   <option value="EU">ヨーロッパ</option>
+                  <option value="DM">先進国</option>
                   <option value="EM">新興国</option>
                   <option value="GL">グローバル</option>
-                  <option value="DM">先進国</option>
                 </select>
+              </div>
+
+              {/* サブカテゴリ */}
+              <div className="space-y-2">
+                <Label htmlFor="subCategory">サブカテゴリ</Label>
+                <Input
+                  id="subCategory"
+                  type="text"
+                  value={formState.subCategory}
+                  onChange={(e) => updateFormField('subCategory', e.target.value)}
+                  placeholder="例: 大型成長株"
+                  aria-label="サブカテゴリ（任意）"
+                />
               </div>
 
               {/* 取引所 */}
@@ -242,9 +406,10 @@ export default function AssetsPage() {
                 <Input
                   id="exchange"
                   type="text"
-                  value={exchange}
-                  onChange={(e) => setExchange(e.target.value)}
+                  value={formState.exchange}
+                  onChange={(e) => updateFormField('exchange', e.target.value)}
                   placeholder="例: NYSE, TSE"
+                  aria-label="取引所（任意）"
                 />
               </div>
             </div>
@@ -255,18 +420,24 @@ export default function AssetsPage() {
               <Input
                 id="isin"
                 type="text"
-                value={isin}
-                onChange={(e) => setIsin(e.target.value)}
+                value={formState.isin}
+                onChange={(e) => updateFormField('isin', e.target.value)}
                 placeholder="例: US88160R1014"
                 className="max-w-md"
+                aria-label="ISINコード（任意）"
               />
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="w-full md:w-auto"
+              aria-label={isSubmitting ? '登録処理中' : '新しい資産を登録'}
+            >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  登録中...
+                  <Spinner size="sm" />
+                  <span className="ml-2">登録中...</span>
                 </>
               ) : (
                 <>
@@ -328,29 +499,31 @@ export default function AssetsPage() {
                         className={`border-b transition-colors hover:bg-muted/50 ${
                           index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
                         }`}
+                        title={`資産ID: ${asset.id} | ${asset.name}`}
                       >
                         <td className="h-12 px-4 align-middle">
                           <div className="font-mono font-medium text-foreground">
-                            {asset.symbol}
+                            {asset.symbol || '-'}
                           </div>
                         </td>
                         <td className="h-12 px-4 align-middle">
-                          <div className="font-medium text-foreground max-w-[200px] truncate">
+                          <div className="font-medium text-foreground max-w-[200px] truncate" title={asset.name}>
                             {asset.name}
                           </div>
                         </td>
                         <td className="h-12 px-4 align-middle">
                           <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20">
-                            {asset.asset_class || '-'}
+                            {/* ✅ display_categoryの目的: UI表示用ラベル（将来的にi18n対応） */}
+                            {asset.asset_class ? ASSET_CLASS_LABELS[asset.asset_class] : '-'}
                           </span>
                         </td>
                         <td className="h-12 px-4 align-middle">
                           <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-700/10 dark:bg-green-400/10 dark:text-green-400 dark:ring-green-400/20">
-                            {asset.asset_type || '-'}
+                            {asset.asset_type ? ASSET_TYPE_LABELS[asset.asset_type] : '-'}
                           </span>
                         </td>
                         <td className="h-12 px-4 align-middle text-muted-foreground">
-                          {asset.region || '-'}
+                          {asset.region ? REGION_LABELS[asset.region] : '-'}
                         </td>
                         <td className="h-12 px-4 align-middle">
                           <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-400/10 dark:text-gray-400 dark:ring-gray-400/20">
@@ -367,6 +540,8 @@ export default function AssetsPage() {
                               size="sm"
                               onClick={() => handleDelete(asset.id)}
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              aria-label={`${asset.name}を削除`}
+                              title={`${asset.name}を削除`}
                             >
                               <TrashIcon className="h-4 w-4" />
                             </Button>
