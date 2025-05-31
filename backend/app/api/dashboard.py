@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime, date, timedelta
 from typing import Dict, List
+import logging
 
 from app.database import get_db
 from app.models import User, ValuationSnapshot
@@ -11,6 +12,7 @@ from app.services.valuation_calculator import ValuationCalculator
 from app.tasks.scheduled_tasks import trigger_price_fetch
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Response models
@@ -46,25 +48,36 @@ async def get_dashboard_overview(
     latest_snapshot = result.scalar_one_or_none()
     
     if not latest_snapshot:
-        # Calculate if no snapshot exists
-        calculator = ValuationCalculator(db)
-        latest_snapshot = await calculator.calculate_snapshot()
-        if latest_snapshot:
-            db.add(latest_snapshot)
-            await db.commit()
-        else:
-            # 🔧 修正: データがない場合の適切なレスポンス
-            return DashboardOverview(
-                total_jpy=0.0,
-                total_usd=0.0,
-                total_btc=0.0,
-                change_24h=0.0,
-                change_percentage=0.0,
-                breakdown_by_category={},
-                breakdown_by_currency={},
-                breakdown_by_account_type={},
-                history=[]
-            )
+        # 🔧 修正: snapshotが存在しない場合の処理を改善
+        logger.info("No valuation snapshot found, attempting to calculate one")
+        try:
+            calculator = ValuationCalculator(db)
+            latest_snapshot = await calculator.calculate_snapshot()
+            if latest_snapshot:
+                db.add(latest_snapshot)
+                await db.commit()
+                await db.refresh(latest_snapshot)
+                logger.info("Created new valuation snapshot successfully")
+            else:
+                logger.warning("Failed to calculate valuation snapshot")
+        except Exception as e:
+            logger.error(f"Error calculating valuation snapshot: {e}")
+            latest_snapshot = None
+    
+    # 🔧 修正: データがない場合のデフォルトレスポンスを明確に定義
+    if not latest_snapshot:
+        logger.info("Returning default dashboard data - no holdings or valuations available")
+        return DashboardOverview(
+            total_jpy=0.0,
+            total_usd=0.0,
+            total_btc=0.0,
+            change_24h=0.0,
+            change_percentage=0.0,
+            breakdown_by_category={},
+            breakdown_by_currency={},
+            breakdown_by_account_type={},
+            history=[]
+        )
     
     # Get previous day snapshot for comparison
     yesterday = latest_snapshot.date - timedelta(days=1)
@@ -100,13 +113,14 @@ async def get_dashboard_overview(
         for snapshot in history_snapshots
     ]
     
+    # 🔧 修正: Noneチェックを強化して安全なレスポンスを構築
     return DashboardOverview(
-        total_jpy=latest_snapshot.total_jpy,
-        total_usd=latest_snapshot.total_usd,
-        total_btc=latest_snapshot.total_btc,
+        total_jpy=latest_snapshot.total_jpy or 0.0,
+        total_usd=latest_snapshot.total_usd or 0.0,
+        total_btc=latest_snapshot.total_btc or 0.0,
         change_24h=change_24h,
         change_percentage=change_percentage,
-        breakdown_by_category=latest_snapshot.breakdown_by_category or {},  # データベースカラム名
+        breakdown_by_category=latest_snapshot.breakdown_by_category or {},
         breakdown_by_currency=latest_snapshot.breakdown_by_currency or {},
         breakdown_by_account_type=latest_snapshot.breakdown_by_account_type or {},
         history=history
@@ -159,6 +173,7 @@ async def refresh_prices(
         )
     except Exception as e:
         # Celeryが動いていない場合のフォールバック
+        logger.warning(f"Celery price refresh failed: {e}")
         return RefreshResponse(
             message="Price refresh not available - Celery worker not running",
             task_id=None
@@ -229,3 +244,76 @@ async def get_portfolio_summary(
         "account_type_breakdown": latest_snapshot.breakdown_by_account_type,
         "fx_rates": latest_snapshot.fx_rates
     }
+
+# 🔧 追加: デバッグ用エンドポイント
+@router.get("/debug")
+async def debug_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Debug endpoint to check dashboard state"""
+    try:
+        # Count holdings
+        from app.models import Holding
+        result = await db.execute(select(func.count(Holding.id)))
+        holdings_count = result.scalar()
+        
+        # Count snapshots
+        result = await db.execute(select(func.count(ValuationSnapshot.id)))
+        snapshots_count = result.scalar()
+        
+        # Latest snapshot info
+        result = await db.execute(
+            select(ValuationSnapshot)
+            .order_by(ValuationSnapshot.date.desc())
+            .limit(1)
+        )
+        latest_snapshot = result.scalar_one_or_none()
+        
+        return {
+            "holdings_count": holdings_count,
+            "snapshots_count": snapshots_count,
+            "latest_snapshot_date": latest_snapshot.date.isoformat() if latest_snapshot else None,
+            "latest_snapshot_total": latest_snapshot.total_jpy if latest_snapshot else None,
+        }
+    except Exception as e:
+        logger.error(f"Debug endpoint error: {e}")
+        return {"error": str(e)}
+
+# 🔧 追加: 価格取得エンドポイント（/api/prices/current の代替）
+@router.get("/prices")
+async def get_current_prices(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get current prices for all assets"""
+    try:
+        from app.models import Asset, Price
+        
+        # Get all assets with their latest prices
+        result = await db.execute(select(Asset))
+        assets = result.scalars().all()
+        
+        prices = {}
+        for asset in assets:
+            # Get latest price for this asset
+            result = await db.execute(
+                select(Price)
+                .where(Price.asset_id == asset.id)
+                .order_by(Price.date.desc())
+                .limit(1)
+            )
+            price = result.scalar_one_or_none()
+            
+            if price:
+                prices[asset.symbol or asset.name] = {
+                    "price": price.price,
+                    "date": price.date.isoformat(),
+                    "currency": asset.currency,
+                    "source": price.source
+                }
+        
+        return {"prices": prices, "timestamp": datetime.now().isoformat()}
+    except Exception as e:
+        logger.error(f"Error getting current prices: {e}")
+        return {"prices": {}, "error": str(e)}

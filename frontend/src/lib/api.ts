@@ -15,32 +15,47 @@ import type {
   DashboardData 
 } from '@/types'
 
-// API URL configuration - handle different environments
+
+// 🔧 修正: より確実なAPI URL設定
 const getApiUrl = () => {
-  // In browser environment
+  // 環境変数が設定されている場合は優先
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  // ブラウザ環境でのデフォルト設定
   if (typeof window !== 'undefined') {
-    // Check if we're running in Docker container
+    // 開発環境の場合
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:8000'
     }
-    // For production or custom domains, use relative URLs
+    // 本番環境ではrelative URLを使用
     return ''
   }
-  // Server-side rendering - use Docker service name
-  return process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000'
+  
+  // サーバーサイドでは Docker service nameを使用
+  return 'http://backend:8000'
 }
 
 const API_URL = getApiUrl()
 
-// ─────────────────────────────
-// axios インスタンスの設定
-// ─────────────────────────────
+// 🔧 修正: より詳細なログとエラーハンドリング
+console.log("🔧 API Configuration:", {
+  API_URL,
+  NODE_ENV: process.env.NODE_ENV,
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'server-side'
+})
+
+// axios インスタンスの設定（タイムアウトを延長）
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 🔧 修正: 30秒に延長
+  // 🔧 追加: より詳細なconfig
+  withCredentials: false, // CORSで問題が発生する場合はfalseに
 })
 
 // ─────────────────────────────
@@ -77,21 +92,54 @@ export const useAuthStore = create<AuthState>()(
 )
 
 // ─────────────────────────────
-// axios インターセプター
+// axios インターセプター（デバッグ強化）
 // ─────────────────────────────
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// Add response interceptor for auth errors
-api.interceptors.response.use(
-  (response) => response,
+api.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().token
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // 🔧 追加: リクエストログ
+    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+      baseURL: config.baseURL,
+      headers: config.headers,
+    })
+    
+    return config
+  },
   (error) => {
-    console.error('API Error:', error.response?.data || error.message)
+    console.error('🚨 Request Error:', error)
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor for auth errors（デバッグ強化）
+api.interceptors.response.use(
+  (response) => {
+    // 🔧 追加: レスポンスログ
+    console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+      status: response.status,
+      data: response.data
+    })
+    return response
+  },
+  (error) => {
+    // 🔧 修正: より詳細なエラーログ
+    console.error('🚨 API Error:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: {
+        method: error.config?.method,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+      }
+    })
+    
     if (error.response?.status === 401) {
       useAuthStore.getState().logout()
       if (typeof window !== 'undefined') {
@@ -279,16 +327,22 @@ export const dashboardAPI = {
 
 console.log("BASE API URL:", API_URL)
 
+
 // ─────────────────────────────
 // 価格 API
 // ─────────────────────────────
 export const pricesAPI = {
+  current: async () => {
+    const response = await api.get('/api/prices/current')
+    return response.data
+  },
+
   latest: async () => {
     const response = await api.get('/api/prices/latest')
     return response.data
   },
 
-  history: async (assetId: string, startDate?: string, endDate?: string) => {  // 🔧 修正: string型に変更
+  history: async (assetId: string, startDate?: string, endDate?: string) => {
     const response = await api.post('/api/prices/history', {
       asset_id: assetId,
       start_date: startDate,
@@ -297,7 +351,7 @@ export const pricesAPI = {
     return response.data
   },
 
-  fetch: async (assetId: string) => {  // 🔧 修正: string型に変更
+  fetch: async (assetId: string) => {
     const response = await api.post(`/api/prices/fetch/${assetId}`)
     return response.data
   },

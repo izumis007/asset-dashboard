@@ -1,18 +1,20 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { dashboardAPI, useAuthStore } from '@/lib/api'
+import { dashboardAPI, pricesAPI, useAuthStore } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NetWorthChart } from '@/components/charts/NetWorthChart'
 import { AllocationPieChart } from '@/components/charts/AllocationPieChart'
 import { formatCurrency, formatPercentage } from '@/lib/utils'
-import { ArrowUpIcon, ArrowDownIcon, RefreshCw } from 'lucide-react'
+import { ArrowUpIcon, ArrowDownIcon, RefreshCw, TrendingUp, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
+
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [currentPrices, setCurrentPrices] = useState<any>(null)
   const router = useRouter()
   
   const { token, isAuthenticated } = useAuthStore()
@@ -24,12 +26,12 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, router])
 
+  // ダッシュボードデータ取得
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: dashboardAPI.overview,
     enabled: isAuthenticated(),
     retry: (failureCount, error: any) => {
-      // 401エラーの場合はリトライしない
       if (error?.response?.status === 401) {
         return false
       }
@@ -37,11 +39,26 @@ export default function DashboardPage() {
     }
   })
 
+  // 現在価格データ取得
+  const { data: pricesData, refetch: refetchPrices } = useQuery({
+    queryKey: ['current-prices'],
+    queryFn: pricesAPI.current,
+    enabled: isAuthenticated(),
+    refetchInterval: 5 * 60 * 1000, // 5分おきに自動更新
+    refetchIntervalInBackground: false,
+  })
+
+  useEffect(() => {
+    if (pricesData) {
+      setCurrentPrices(pricesData)
+    }
+  }, [pricesData])
+
   const handleRefreshPrices = async () => {
     setIsRefreshing(true)
     try {
       await dashboardAPI.refreshPrices()
-      await refetch()
+      await Promise.all([refetch(), refetchPrices()])
     } catch (error) {
       console.error('価格更新エラー:', error)
     } finally {

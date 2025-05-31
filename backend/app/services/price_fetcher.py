@@ -15,12 +15,24 @@ class PriceFetcher:
         self.alpha_vantage_key = settings.ALPHA_VANTAGE_API_KEY
         self.timeout = httpx.Timeout(30.0)
     
-    async def fetch_price(self, symbol: str, asset_class: str = "Equity") -> Optional[Dict]:
+    async def fetch_price(self, symbol: str, asset_class: str = "Equity", currency: str = "JPY") -> Optional[Dict]:
         """Fetch price with fallback through multiple sources"""
         
-        # Try sources in order of preference
-        price_data = None
+        # 日本株の場合はStooqを優先
+        if currency == "JPY" and asset_class == "Equity":
+            price_data = await self._fetch_stooq_jp(symbol)
+            if price_data:
+                price_data['source'] = 'stooq_jp'
+                return price_data
         
+        # 暗号資産の場合
+        if asset_class == "Crypto":
+            price_data = await self._fetch_crypto_price(symbol.lower())
+            if price_data:
+                price_data['source'] = 'coingecko'
+                return price_data
+        
+        # Try sources in order of preference for other assets
         if self.twelve_data_key:
             price_data = await self._fetch_twelve_data(symbol)
             if price_data:
@@ -42,6 +54,47 @@ class PriceFetcher:
         logger.warning(f"Failed to fetch price for {symbol} from all sources")
         return None
     
+    async def _fetch_stooq_jp(self, symbol: str) -> Optional[Dict]:
+        """日本株専用のStooq取得"""
+        try:
+            # 日本株のシンボル形式に変換
+            if not symbol.endswith('.JP'):
+                if symbol.isdigit():  # 証券コードの場合
+                    symbol_formatted = f"{symbol}.JP"
+                else:
+                    symbol_formatted = f"{symbol}.T"  # TSE
+            else:
+                symbol_formatted = symbol
+            
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"https://stooq.com/q/d/l/",
+                    params={
+                        "s": symbol_formatted,
+                        "i": "d"
+                    }
+                )
+                
+                if response.status_code == 200:
+                    lines = response.text.strip().split('\n')
+                    if len(lines) > 1:
+                        headers = lines[0].split(',')
+                        values = lines[-1].split(',')
+                        
+                        data = dict(zip(headers, values))
+                        if float(data.get("Close", 0)) > 0:
+                            return {
+                                "price": float(data.get("Close", 0)),
+                                "open": float(data.get("Open", 0)),
+                                "high": float(data.get("High", 0)),
+                                "low": float(data.get("Low", 0)),
+                                "volume": float(data.get("Volume", 0)),
+                                "date": datetime.strptime(data["Date"], "%Y-%m-%d").date()
+                            }
+        except Exception as e:
+            logger.error(f"Stooq JP error for {symbol}: {e}")
+        return None
+    
     async def _fetch_twelve_data(self, symbol: str) -> Optional[Dict]:
         """Fetch from Twelve Data API"""
         try:
@@ -56,7 +109,7 @@ class PriceFetcher:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    if "close" in data:
+                    if "close" in data and float(data["close"]) > 0:
                         return {
                             "price": float(data["close"]),
                             "open": float(data.get("open", 0)),
@@ -73,31 +126,30 @@ class PriceFetcher:
         """Fetch from Stooq (free, no API key)"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                # Stooq CSV endpoint
                 response = await client.get(
                     f"https://stooq.com/q/d/l/",
                     params={
                         "s": symbol,
-                        "i": "d"  # daily
+                        "i": "d"
                     }
                 )
                 
                 if response.status_code == 200:
                     lines = response.text.strip().split('\n')
                     if len(lines) > 1:
-                        # Parse CSV
                         headers = lines[0].split(',')
-                        values = lines[-1].split(',')  # Last line is most recent
+                        values = lines[-1].split(',')
                         
                         data = dict(zip(headers, values))
-                        return {
-                            "price": float(data.get("Close", 0)),
-                            "open": float(data.get("Open", 0)),
-                            "high": float(data.get("High", 0)),
-                            "low": float(data.get("Low", 0)),
-                            "volume": float(data.get("Volume", 0)),
-                            "date": datetime.strptime(data["Date"], "%Y-%m-%d").date()
-                        }
+                        if float(data.get("Close", 0)) > 0:
+                            return {
+                                "price": float(data.get("Close", 0)),
+                                "open": float(data.get("Open", 0)),
+                                "high": float(data.get("High", 0)),
+                                "low": float(data.get("Low", 0)),
+                                "volume": float(data.get("Volume", 0)),
+                                "date": datetime.strptime(data["Date"], "%Y-%m-%d").date()
+                            }
         except Exception as e:
             logger.error(f"Stooq error for {symbol}: {e}")
         return None
@@ -131,14 +183,27 @@ class PriceFetcher:
             logger.error(f"Alpha Vantage error for {symbol}: {e}")
         return None
     
-    async def fetch_crypto_price(self, symbol: str = "bitcoin") -> Optional[Dict]:
+    async def _fetch_crypto_price(self, symbol: str = "bitcoin") -> Optional[Dict]:
         """Fetch cryptocurrency price from CoinGecko"""
         try:
+            # シンボルからCoinGecko IDにマッピング
+            crypto_mapping = {
+                "btc": "bitcoin",
+                "bitcoin": "bitcoin",
+                "eth": "ethereum", 
+                "ethereum": "ethereum",
+                "ada": "cardano",
+                "dot": "polkadot",
+                "sol": "solana"
+            }
+            
+            crypto_id = crypto_mapping.get(symbol.lower(), symbol.lower())
+            
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
                     f"https://api.coingecko.com/api/v3/simple/price",
                     params={
-                        "ids": symbol,
+                        "ids": crypto_id,
                         "vs_currencies": "jpy,usd",
                         "include_24hr_vol": "true",
                         "include_24hr_change": "true"
@@ -147,15 +212,14 @@ class PriceFetcher:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    if symbol in data:
-                        crypto_data = data[symbol]
+                    if crypto_id in data:
+                        crypto_data = data[crypto_id]
                         return {
                             "price": crypto_data.get("jpy", 0),
                             "price_usd": crypto_data.get("usd", 0),
                             "volume": crypto_data.get("jpy_24h_vol", 0),
                             "change_24h": crypto_data.get("jpy_24h_change", 0),
-                            "date": date.today(),
-                            "source": "coingecko"
+                            "date": date.today()
                         }
         except Exception as e:
             logger.error(f"CoinGecko error for {symbol}: {e}")
@@ -183,8 +247,12 @@ class PriceFetcher:
         
         return None
     
-    async def fetch_multiple_prices(self, symbols: List[str]) -> Dict[str, Optional[Dict]]:
-        """Fetch prices for multiple symbols concurrently"""
-        tasks = [self.fetch_price(symbol) for symbol in symbols]
+    async def fetch_multiple_prices(self, symbols_with_info: List[tuple]) -> Dict[str, Optional[Dict]]:
+        """Fetch prices for multiple symbols with asset info"""
+        tasks = []
+        for symbol, asset_class, currency in symbols_with_info:
+            task = self.fetch_price(symbol, asset_class, currency)
+            tasks.append(task)
+        
         results = await asyncio.gather(*tasks)
-        return dict(zip(symbols, results))
+        return dict(zip([info[0] for info in symbols_with_info], results))

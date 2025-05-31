@@ -97,6 +97,7 @@ export default function HoldingsPage() {
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [owners, setOwners] = useState<Owner[]>([])
+  const [currentPrices, setCurrentPrices] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)

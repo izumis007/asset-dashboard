@@ -101,9 +101,12 @@ services:
       dockerfile: Dockerfile
     container_name: asset_dashboard_frontend
     environment:
+      # 🔧 修正: ホストのlocalhostを明示的に指定
       NEXT_PUBLIC_API_URL: http://localhost:8000
       NODE_ENV: development
       TZ: Asia/Tokyo
+      # 🔧 追加: Watchman設定（ファイル監視の問題を回避）
+      WATCHPACK_POLLING: true
     volumes:
       - ./frontend:/app
       - /app/node_modules
