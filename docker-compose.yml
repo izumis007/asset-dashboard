@@ -16,14 +16,14 @@ services:
     restart: unless-stopped
 
   redis:
-   image: redis:7-alpine
-   container_name: asset_dashboard_redis
-   command: redis-server
-   ports:
-    - "6379:6379"
-   networks:
-    - asset_network
-   restart: unless-stopped
+    image: redis:7-alpine
+    container_name: asset_dashboard_redis
+    command: redis-server
+    ports:
+      - "6379:6379"
+    networks:
+      - asset_network
+    restart: unless-stopped
 
   backend:
     build:
@@ -33,8 +33,9 @@ services:
     env_file:
       - .env
     environment:
-      # 統一された形式で設定
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      # 🔧 修正: 統一された環境変数設定
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
+      REDIS_URL: redis://redis:6379/0
       TZ: Asia/Tokyo
       LOG_LEVEL: DEBUG 
     volumes:
@@ -58,7 +59,9 @@ services:
     env_file:
       - .env
     environment:
-      REDIS_URL: ${REDIS_URL} 
+      # 🔧 修正: 統一された環境変数設定
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
+      REDIS_URL: redis://redis:6379/0
       TZ: Asia/Tokyo
     volumes:
       - ./backend:/app
@@ -78,7 +81,9 @@ services:
     env_file:
       - .env
     environment:
-      REDIS_URL: ${REDIS_URL} 
+      # 🔧 修正: 統一された環境変数設定
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-asset_dashboard}
+      REDIS_URL: redis://redis:6379/0
       TZ: Asia/Tokyo
     volumes:
       - ./backend:/app

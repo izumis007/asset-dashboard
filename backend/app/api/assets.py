@@ -4,7 +4,7 @@ from sqlalchemy import select
 from typing import List, Optional
 import logging
 import traceback
-from uuid import UUID
+import uuid  # 🔧 追加: uuid インポート
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import Asset, User
@@ -191,7 +191,7 @@ async def get_asset(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        asset_uuid = uuid.UUID(asset_id)
+        asset_uuid = uuid.UUID(asset_id)  # 🔧 修正: uuid.UUID を正しく使用
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid asset ID format")
     
@@ -214,11 +214,20 @@ async def get_asset(
     )
 
 @router.delete("/{asset_id}")
-async def delete_asset(asset_id: UUID, session: AsyncSession = Depends(get_db)):
-    result = await session.execute(
+async def delete_asset(
+    asset_id: str,  # 🔧 修正: str型に変更
+    current_user: User = Depends(get_current_user),  # 🔧 追加: 認証チェック
+    db: AsyncSession = Depends(get_db)  # 🔧 修正: session -> db
+):
+    try:
+        asset_uuid = uuid.UUID(asset_id)  # 🔧 修正: UUID変換
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid asset ID format")
+    
+    result = await db.execute(
         select(Asset)
-        .options(selectinload(Asset.holdings))  # ⬅️ これがポイント
-        .where(Asset.id == asset_id)
+        .options(selectinload(Asset.holdings))
+        .where(Asset.id == asset_uuid)
     )
     asset = result.scalar_one_or_none()
     if asset is None:
@@ -228,6 +237,6 @@ async def delete_asset(asset_id: UUID, session: AsyncSession = Depends(get_db)):
     if asset.holdings:
         raise HTTPException(status_code=400, detail="Cannot delete asset with holdings")
 
-    await session.delete(asset)
-    await session.commit()
+    await db.delete(asset)
+    await db.commit()
     return {"message": "Asset deleted"}

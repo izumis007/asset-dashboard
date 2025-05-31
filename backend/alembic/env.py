@@ -9,8 +9,8 @@ load_dotenv()
 
 # 詳細ログ設定
 logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)              # SQL文とパラメータ
-logging.getLogger('alembic.runtime.migration').setLevel(logging.DEBUG)     # Alembicの実行ステップ
+logging.getLogger('sqlalchemy.engine').setLevel(logging.DEBUG)
+logging.getLogger('alembic.runtime.migration').setLevel(logging.DEBUG)
 
 # プロジェクトルートをパスに追加
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -29,12 +29,19 @@ from app.models.cash_balance import CashBalance
 # Alembic の設定オブジェクト取得
 config = context.config
 
-# DATABASE_URL の設定（環境変数から）
-DATABASE_URL = os.environ.get("DATABASE_URL_SYNC") or os.environ.get("DATABASE_URL")
-print(f"💡 DATABASE_URL set to: {DATABASE_URL}")
-
+# 🔧 修正: DATABASE_URL の正しい変換処理
+DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:
+    # asyncpg -> psycopg2 変換（同期用）
+    if "postgresql+asyncpg://" in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    
+    print(f"💡 DATABASE_URL converted for Alembic: {DATABASE_URL}")
     config.set_main_option("sqlalchemy.url", DATABASE_URL)
+else:
+    raise ValueError("DATABASE_URL environment variable is required")
 
 # ファイル設定に基づくログ出力
 if config.config_file_name is not None:

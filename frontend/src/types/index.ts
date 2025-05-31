@@ -143,8 +143,8 @@ export interface User {
   }
   
   export interface Price {
-    id: string  // UUID string
-    asset_id: string  // UUID string
+    id: string  // 🔧 修正: UUID string
+    asset_id: string  // 🔧 修正: UUID string
     date: string
     price: number
     open?: number

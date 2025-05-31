@@ -116,21 +116,26 @@ const INITIAL_FORM_STATE: FormState = {
 
 // 送信データ構築のユーティリティ関数
 const buildAssetPayload = (formState: FormState): AssetCreate => {
-    const payload: AssetCreate = {
-      name: formState.name.trim(),
-      asset_class: formState.assetClass,
-      currency: formState.currency
-  };
+  // 🔧 修正: asset_class の undefined チェック
+  if (!formState.assetClass) {
+      throw new Error('Asset class is required');
+  }
 
-  // オプション項目は値がある場合のみ追加
-  if (formState.symbol.trim()) payload.symbol = formState.symbol.trim();
-  if (formState.assetType) payload.asset_type = formState.assetType;
-  if (formState.region) payload.region = formState.region;
-  if (formState.subCategory.trim()) payload.sub_category = formState.subCategory.trim();
-  if (formState.exchange.trim()) payload.exchange = formState.exchange.trim();
-  if (formState.isin.trim()) payload.isin = formState.isin.trim();
+  const payload: AssetCreate = {
+    name: formState.name.trim(),
+    asset_class: formState.assetClass,  // ここでは必ず値が存在する
+    currency: formState.currency
+};
 
-  return payload;
+// オプション項目は値がある場合のみ追加
+if (formState.symbol.trim()) payload.symbol = formState.symbol.trim();
+if (formState.assetType) payload.asset_type = formState.assetType;
+if (formState.region) payload.region = formState.region;
+if (formState.subCategory.trim()) payload.sub_category = formState.subCategory.trim();
+if (formState.exchange.trim()) payload.exchange = formState.exchange.trim();
+if (formState.isin.trim()) payload.isin = formState.isin.trim();
+
+return payload;
 };
 
 // フォームバリデーション関数
@@ -244,7 +249,11 @@ export default function AssetsPage() {
   };
 
   // 選択可能な資産タイプ（CamelCaseキーで取得）
-  const availableAssetTypes = ASSET_TYPE_BY_CLASS[formState.assetClass] || [];
+  // 🔧 修正前（エラーが発生する行）
+  // const availableAssetTypes = ASSET_TYPE_BY_CLASS[formState.assetClass] || [];
+
+  // 🔧 修正後（型安全な書き方）
+  const availableAssetTypes = formState.assetClass ? ASSET_TYPE_BY_CLASS[formState.assetClass] : [];
 
   if (isLoading) {
     return (

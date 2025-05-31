@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from typing import List
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime  # 🔧 追加: datetime
 
 from app.database import get_db
 from app.models import Price, Asset, User
@@ -14,8 +14,8 @@ router = APIRouter()
 
 # Pydantic models
 class PriceResponse(BaseModel):
-    id: int
-    asset_id: int
+    id: str  # 🔧 修正: UUID string
+    asset_id: str  # 🔧 修正: UUID string
     date: date
     price: float
     open: float | None
@@ -28,7 +28,7 @@ class PriceResponse(BaseModel):
         from_attributes = True
 
 class PriceHistoryRequest(BaseModel):
-    asset_id: int
+    asset_id: str  # 🔧 修正: UUID string
     start_date: date | None = None
     end_date: date | None = None
 
@@ -148,7 +148,8 @@ async def fetch_price(
     # Fetch new price
     price_fetcher = PriceFetcher()
     
-    if asset.category == "crypto":
+    # 🔧 修正: asset_class は Enum なので .value でアクセス
+    if asset.asset_class and asset.asset_class.value == "Crypto":
         price_data = await price_fetcher.fetch_crypto_price(asset.symbol.lower())
     else:
         price_data = await price_fetcher.fetch_price(asset.symbol)
@@ -204,5 +205,5 @@ async def get_fx_rates(
     
     return {
         "rates": rates,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat()  # 🔧 修正: datetime を正しく使用
     }

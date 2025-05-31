@@ -277,5 +277,31 @@ export const dashboardAPI = {
 
 console.log("BASE API URL:", API_URL)
 
+// ─────────────────────────────
+// 価格 API
+// ─────────────────────────────
+export const pricesAPI = {
+  latest: async () => {
+    const response = await api.get('/api/prices/latest')
+    return response.data
+  },
 
+  history: async (assetId: string, startDate?: string, endDate?: string) => {  // 🔧 修正: string型に変更
+    const response = await api.post('/api/prices/history', {
+      asset_id: assetId,
+      start_date: startDate,
+      end_date: endDate
+    })
+    return response.data
+  },
 
+  fetch: async (assetId: string) => {  // 🔧 修正: string型に変更
+    const response = await api.post(`/api/prices/fetch/${assetId}`)
+    return response.data
+  },
+
+  fxRates: async () => {
+    const response = await api.get('/api/prices/fx-rates')
+    return response.data
+  }
+}

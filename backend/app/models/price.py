@@ -1,13 +1,16 @@
-from sqlalchemy import Column, Integer, Float, Date, ForeignKey, UniqueConstraint, DateTime, String
+from sqlalchemy import Column, Float, Date, ForeignKey, UniqueConstraint, DateTime, String
+from sqlalchemy.dialects.postgresql import UUID  # 🔧 追加: UUID import
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+import uuid  # 🔧 追加: uuid import
 from app.database import Base
 
 class Price(Base):
     __tablename__ = "prices"
     
-    id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
+    # 🔧 修正: UUID主キーに変更（他のテーブルと統一）
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=False)  # 🔧 修正: UUID外部キー
     date = Column(Date, nullable=False, index=True)
     price = Column(Float, nullable=False)  # Price in asset's currency
     
