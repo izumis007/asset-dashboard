@@ -17,11 +17,7 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
     logger.info("Starting up Asset Dashboard API...")
-    
-    # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
+        
     # Setup periodic tasks
     setup_periodic_tasks()
     

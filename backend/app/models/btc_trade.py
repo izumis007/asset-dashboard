@@ -24,7 +24,7 @@ class BTCTrade(Base):
     
     # Optional fields
     exchange = Column(String(100), nullable=True)
-    trade_type = Column(Enum(TradeType), nullable=True)  # "buy", "sell", "transfer"
+    trade_type = Column(Enum(TradeType, name="trade_type"), nullable=True) # "buy", "sell", "transfer"
     notes = Column(Text, nullable=True)
     
     # Timestamps

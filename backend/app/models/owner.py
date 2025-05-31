@@ -18,7 +18,7 @@ class Owner(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String(100), nullable=False)  # 名義人名（必須）
-    owner_type = Column(Enum(OwnerType), nullable=False)
+    owner_type = Column(Enum(OwnerType, name="owner_type"), nullable=False)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

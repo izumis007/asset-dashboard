@@ -54,9 +54,9 @@ class Asset(Base):
     name = Column(String(200), nullable=False)
     
     # 新しい階層化された分類システム
-    asset_class = Column(Enum(AssetClass), nullable=False)  # 必須
-    asset_type = Column(Enum(AssetType), nullable=True)
-    region = Column(Enum(Region), nullable=True)
+    asset_class = Column(Enum(AssetClass, name="asset_class"), nullable=False)
+    asset_type = Column(Enum(AssetType, name="asset_type"), nullable=True)
+    region     = Column(Enum(Region, name="region"), nullable=True)
     sub_category = Column(String(100), nullable=True)  # サブカテゴリ追加
     
     # 基本情報

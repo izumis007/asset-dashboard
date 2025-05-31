@@ -23,7 +23,7 @@ class Holding(Base):
     quantity = Column(Float, nullable=False)
     cost_total = Column(Float, nullable=False)  # Total cost in asset's currency
     acquisition_date = Column(Date, nullable=False)
-    account_type = Column(Enum(AccountType), nullable=False)
+    account_type = Column(Enum(AccountType, name="account_type"), nullable=False)
     
     # Optional fields
     broker = Column(String(100), nullable=True)
